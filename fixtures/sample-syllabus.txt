@@ -1,0 +1,15 @@
+CIS 8040 — Data Management
+Fall 2026
+Instructor: Dr. Example
+Georgia State University
+
+Grade Breakdown:
+- Quiz 1: 10% — Due September 15, 2026
+- Quiz 2: 10% — Due October 6, 2026
+- Midterm Exam: 25% — Due October 20, 2026
+- Programming Assignment 1: 15% — Due November 3, 2026
+- Programming Assignment 2: 15% — Due November 24, 2026
+- Final Exam: 25% — Due December 10, 2026
+
+Course Description:
+Introduction to database systems, SQL, and data modeling for graduate students.
