@@ -35,7 +35,7 @@ export default async function ClassesPage() {
       <main className="mx-auto max-w-6xl px-6 py-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="font-display text-4xl">Classes</h1>
+            <h1 className="font-heading text-4xl">Classes</h1>
             <p className="mt-2 text-[var(--muted)]">
               Grades, targets, and syllabus assessments.
             </p>
@@ -45,7 +45,7 @@ export default async function ClassesPage() {
           </Link>
         </div>
 
-        <ul className="mt-10 grid gap-4 sm:grid-cols-2">
+        <ul className="mt-10 grid gap-6 sm:grid-cols-2">
           {classList.map((c) => {
             const items = all.filter((a) => a.class_id === c.id);
             const proj = computeGradeProjection(
@@ -56,11 +56,11 @@ export default async function ClassesPage() {
               <li key={c.id}>
                 <Link
                   href={`/classes/${c.id}`}
-                  className="surface block rounded-2xl p-5 transition hover:border-[var(--accent)]/30"
+                  className="surface block rounded-2xl p-6"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="font-display text-2xl">
+                      <p className="font-heading text-2xl">
                         {c.code || c.name}
                       </p>
                       {c.code && (
@@ -88,8 +88,8 @@ export default async function ClassesPage() {
         </ul>
 
         {classList.length === 0 && (
-          <div className="surface mt-10 rounded-2xl p-10 text-center">
-            <p className="font-display text-2xl">No classes yet</p>
+          <div className="surface mt-10 rounded-2xl p-12 text-center">
+            <p className="font-heading text-2xl">No classes yet</p>
             <p className="mt-2 text-sm text-[var(--muted)]">
               Upload a syllabus to populate your semester.
             </p>

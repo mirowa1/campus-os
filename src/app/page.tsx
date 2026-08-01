@@ -13,41 +13,52 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="relative mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-10">
-      <header className="flex items-center justify-between">
-        <p className="font-display text-2xl tracking-tight">CampusOS</p>
-        <div className="flex gap-3">
-          <Link href="/login" className="btn btn-ghost">
-            Log in
-          </Link>
-          <Link href="/signup" className="btn btn-primary">
-            Sign up
-          </Link>
-        </div>
-      </header>
+    <main className="landing-hero">
+      <div className="landing-hero-blob" aria-hidden />
 
-      <section className="mt-24 flex flex-1 flex-col justify-center pb-24">
-        <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-[var(--accent)]">
-          Student operating system
-        </p>
-        <h1 className="font-display max-w-3xl text-5xl leading-[1.05] tracking-tight md:text-7xl">
-          Upload a syllabus.
-          <br />
-          <span className="italic text-[var(--accent)]">Own your semester.</span>
-        </h1>
-        <p className="mt-6 max-w-xl text-lg text-[var(--muted)]">
-          CampusOS extracts every assignment, exam, and weight — then tracks your
-          grades and tells you exactly what you need to hit your goal.
-        </p>
-        <div className="mt-10 flex flex-wrap gap-3">
-          <Link href="/signup" className="btn btn-primary px-6 py-3 text-base">
-            Get started — under 60 seconds
-          </Link>
-          <Link href="/login" className="btn btn-ghost px-6 py-3 text-base">
-            I already have an account
-          </Link>
-        </div>
-      </section>
+      <div className="landing-hero-inner">
+        <header className="flex items-center justify-between gap-3">
+          <p className="font-display shrink-0 text-xl tracking-tight sm:text-2xl">
+            CoreMax
+          </p>
+          <div className="flex shrink-0 gap-2 sm:gap-3">
+            <Link
+              href="/login"
+              className="btn btn-ghost px-3 py-2 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
+            >
+              Log in
+            </Link>
+            <Link
+              href="/signup"
+              className="btn btn-primary px-3 py-2 text-xs sm:px-4 sm:py-2.5 sm:text-sm"
+            >
+              Sign up
+            </Link>
+          </div>
+        </header>
+
+        <section className="flex flex-1 flex-col justify-center py-8 md:py-16">
+          <div className="max-w-xl md:max-w-2xl">
+            <p className="text-xs font-medium uppercase tracking-[0.35em] text-[var(--muted)] md:text-sm">
+              WE ARE
+            </p>
+            <h1 className="landing-hero-wordmark font-heading mt-3 text-[clamp(3.25rem,17vw,8.5rem)] font-bold leading-[0.92] tracking-tight text-white">
+              COREMAX
+            </h1>
+            <p className="mt-6 max-w-md text-base text-[var(--muted)] md:mt-8 md:text-lg">
+              Upload your syllabus. Know exactly where you stand.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3 md:mt-10">
+              <Link href="/signup" className="btn btn-primary px-6 py-3 text-base">
+                Get started — under 60 seconds
+              </Link>
+              <Link href="/login" className="btn btn-ghost px-6 py-3 text-base">
+                I already have an account
+              </Link>
+            </div>
+          </div>
+        </section>
+      </div>
     </main>
   );
 }

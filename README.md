@@ -8,7 +8,9 @@
 
 Auth → syllabus upload → Claude parse → “Here’s your semester” → calendar + live grade tracking with target-grade / at-risk status.
 
-Deferred for later: notes, budget, push/email notifications, AI assignment assist, study guides, PDF class summaries.
+**Phase 2:** per-class Notes, course material uploads, upload-gated study guide generator (append-to-notes).
+
+Deferred for later: budget, push/email notifications, AI assignment assist, PDF class summaries.
 
 ## Tech
 

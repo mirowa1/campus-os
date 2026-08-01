@@ -2,8 +2,21 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { GradePanel } from "@/components/GradePanel";
+import { MaterialsPanel } from "@/components/MaterialsPanel";
+import { NotesPanel } from "@/components/NotesPanel";
+import { QuizFlashcardsPanel } from "@/components/QuizFlashcardsPanel";
+import { StudyGuidePanel } from "@/components/StudyGuidePanel";
+import { SyllabusDownloadButton } from "@/components/SyllabusDownloadButton";
 import { createClient } from "@/lib/supabase/server";
-import type { AssessmentRow, ClassRow } from "@/lib/types";
+import type {
+  AssessmentRow,
+  ClassRow,
+  CourseMaterialRow,
+  NoteRow,
+  QuizAttemptRow,
+  QuizSetRow,
+  StudyGuideRow,
+} from "@/lib/types";
 
 export default async function ClassDetailPage({
   params,
@@ -25,36 +38,114 @@ export default async function ClassDetailPage({
 
   if (!classRow) notFound();
 
-  const { data: assessments } = await supabase
-    .from("assessments")
-    .select("*")
-    .eq("class_id", params.id)
-    .order("due_date", { ascending: true, nullsFirst: false });
+  const [
+    { data: assessments },
+    { data: notes },
+    { data: materials },
+    { data: guides },
+    { data: quizSets },
+  ] = await Promise.all([
+    supabase
+      .from("assessments")
+      .select("*")
+      .eq("class_id", params.id)
+      .order("due_date", { ascending: true, nullsFirst: false }),
+    supabase
+      .from("notes")
+      .select("*")
+      .eq("class_id", params.id)
+      .order("updated_at", { ascending: false }),
+    supabase
+      .from("course_materials")
+      .select("*")
+      .eq("class_id", params.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("study_guides")
+      .select("*")
+      .eq("class_id", params.id)
+      .order("created_at", { ascending: false })
+      .limit(1),
+    supabase
+      .from("quiz_sets")
+      .select("*")
+      .eq("class_id", params.id)
+      .order("created_at", { ascending: false }),
+  ]);
 
   const cls = classRow as ClassRow;
   const items = (assessments ?? []) as AssessmentRow[];
+  const noteRows = (notes ?? []) as NoteRow[];
+  const materialRows = (materials ?? []) as CourseMaterialRow[];
+  const latestGuide = ((guides ?? [])[0] ?? null) as StudyGuideRow | null;
+  const setRows = (quizSets ?? []) as QuizSetRow[];
+  const setIds = setRows.map((s) => s.id);
+
+  const { data: attemptRows } =
+    setIds.length > 0
+      ? await supabase
+          .from("quiz_attempts")
+          .select("*")
+          .in("quiz_set_id", setIds)
+          .order("created_at", { ascending: false })
+      : { data: [] as QuizAttemptRow[] };
+
+  const attemptsBySet = new Map<string, QuizAttemptRow[]>();
+  for (const a of (attemptRows ?? []) as QuizAttemptRow[]) {
+    const list = attemptsBySet.get(a.quiz_set_id) ?? [];
+    list.push(a);
+    attemptsBySet.set(a.quiz_set_id, list);
+  }
+
+  const initialQuizSets = setRows.map((s) => ({
+    ...s,
+    attempts: attemptsBySet.get(s.id) ?? [],
+  }));
+
+  const classLabel = [cls.code, cls.name].filter(Boolean).join(" — ");
 
   return (
     <div>
       <AppNav email={user.email} />
-      <main className="mx-auto max-w-3xl px-6 py-10">
-        <Link
-          href="/classes"
-          className="text-sm text-[var(--muted)] hover:text-[var(--ink)]"
-        >
-          ← Classes
-        </Link>
-        <h1 className="font-display mt-3 text-4xl">
-          {cls.code ? `${cls.code} — ` : ""}
-          {cls.name}
-        </h1>
-        {cls.term && (
-          <p className="mt-2 text-[var(--muted)]">{cls.term}</p>
-        )}
-
-        <div className="mt-8">
-          <GradePanel classRow={cls} assessments={items} />
+      <main className="mx-auto max-w-3xl space-y-8 px-6 py-10">
+        <div>
+          <Link
+            href="/classes"
+            className="text-sm text-[var(--muted)] hover:text-[var(--ink)]"
+          >
+            ← Classes
+          </Link>
+          <h1 className="font-heading mt-3 text-4xl">
+            {cls.code ? `${cls.code} — ` : ""}
+            {cls.name}
+          </h1>
+          {cls.term && (
+            <p className="mt-2 text-[var(--muted)]">{cls.term}</p>
+          )}
+          {cls.syllabus_path && (
+            <SyllabusDownloadButton
+              syllabusPath={cls.syllabus_path}
+              fileName={cls.syllabus_file_name}
+            />
+          )}
         </div>
+
+        <GradePanel classRow={cls} assessments={items} />
+        <NotesPanel classId={cls.id} initialNotes={noteRows} />
+        <MaterialsPanel classId={cls.id} initialMaterials={materialRows} />
+        <StudyGuidePanel
+          classId={cls.id}
+          classLabel={classLabel}
+          materials={materialRows}
+          notes={noteRows}
+          initialGuide={latestGuide}
+        />
+        <QuizFlashcardsPanel
+          classId={cls.id}
+          materials={materialRows}
+          notes={noteRows}
+          initialSets={initialQuizSets}
+        />
       </main>
     </div>
   );

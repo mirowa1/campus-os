@@ -42,7 +42,7 @@ export default async function OnboardingReviewPage({
       <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--accent)]">
         Here&apos;s your semester
       </p>
-      <h1 className="font-display mt-3 text-4xl md:text-5xl">
+      <h1 className="font-heading mt-3 text-4xl md:text-5xl">
         {cls.code ? `${cls.code} — ` : ""}
         {cls.name}
       </h1>
@@ -51,7 +51,7 @@ export default async function OnboardingReviewPage({
       )}
 
       <div className="mt-10 grid gap-6 md:grid-cols-2">
-        <section className="surface rounded-2xl p-5">
+        <section className="surface rounded-2xl p-6">
           <h2 className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">
             Upcoming deadlines
           </h2>
@@ -75,7 +75,7 @@ export default async function OnboardingReviewPage({
           </ul>
         </section>
 
-        <section className="surface rounded-2xl p-5">
+        <section className="surface rounded-2xl p-6">
           <h2 className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">
             Grade weights
           </h2>
@@ -95,8 +95,8 @@ export default async function OnboardingReviewPage({
         </section>
       </div>
 
-      <section className="surface mt-6 rounded-2xl p-5">
-        <h2 className="font-display text-2xl">Set your target grade</h2>
+      <section className="surface mt-6 rounded-2xl p-6">
+        <h2 className="font-heading text-2xl">Set your target grade</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
           We&apos;ll tell you what you need as you enter scores.
         </p>

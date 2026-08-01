@@ -1,0 +1,6 @@
+Lecture Slides: SQL Joins Cheat Sheet
+- INNER JOIN: matching rows only
+- LEFT OUTER JOIN: all left rows + matches
+- CROSS JOIN: cartesian product
+Remember: WHERE filters after join; ON defines join condition.
+Practice: find students without enrollments using LEFT JOIN ... WHERE e.id IS NULL.

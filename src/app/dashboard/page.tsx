@@ -45,16 +45,17 @@ export default async function DashboardPage() {
   const classMap = new Map(classList.map((c) => [c.id, c]));
 
   return (
-    <div>
+    <div className="hero-blob-shell">
+      <div className="hero-blob" aria-hidden />
       <AppNav email={user.email} />
       <main className="mx-auto max-w-6xl px-6 py-10">
-        <h1 className="font-display text-4xl">Today</h1>
+        <h1 className="font-heading text-4xl">Today</h1>
         <p className="mt-2 text-[var(--muted)]">
           {format(new Date(), "EEEE, MMMM d")} — deadlines and grade pulse.
         </p>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-5">
-          <section className="surface rounded-2xl p-5 lg:col-span-3">
+        <div className="mt-10 grid gap-8 lg:grid-cols-5">
+          <section className="surface rounded-2xl p-6 lg:col-span-3">
             <h2 className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">
               Upcoming deadlines
             </h2>
@@ -89,7 +90,7 @@ export default async function DashboardPage() {
             </ul>
           </section>
 
-          <section className="space-y-3 lg:col-span-2">
+          <section className="space-y-4 lg:col-span-2">
             <h2 className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">
               Classes
             </h2>
@@ -103,7 +104,7 @@ export default async function DashboardPage() {
                 <Link
                   key={c.id}
                   href={`/classes/${c.id}`}
-                  className="surface block rounded-2xl p-4 transition hover:border-[var(--accent)]/30"
+                  className="surface block rounded-2xl p-6"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>

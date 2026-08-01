@@ -138,11 +138,18 @@ export function computeGradeProjection(
       message = `At risk — you need an ${requiredAverageOnRemaining.toFixed(0)}+ average on remaining work to hit your ${targetPercent}% goal.`;
     } else {
       status = "failing_risk";
-      message = `Failing risk — even 100% on remaining work may not reach ${targetPercent}%. Minimum needed would be ${requiredAverageOnRemaining.toFixed(0)}%.`;
+      message = `Failing risk — even 100% on remaining work may not reach ${targetPercent}%.`;
     }
 
     if (nextAssessment && neededOnNext != null) {
-      message += ` On ${nextAssessment.title}, aim for ~${Math.max(0, neededOnNext).toFixed(0)}% (assuming other remaining work averages at your target).`;
+      const title = nextAssessment.title;
+      if (neededOnNext > 100) {
+        message += ` On ${title}, not achievable even with 100% on this assessment (assuming other remaining work averages at your target).`;
+      } else if (neededOnNext <= 0) {
+        message += ` On ${title}, you're already covered if other remaining work averages at your target.`;
+      } else {
+        message += ` On ${title}, aim for ~${neededOnNext.toFixed(0)}% (assuming other remaining work averages at your target).`;
+      }
     }
   }
 

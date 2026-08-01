@@ -7,10 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "smoke:grades": "tsx scripts/smoke-grades.ts"
+    "smoke:grades": "tsx scripts/smoke-grades.ts",
+    "smoke:study-guide-pdf": "tsx scripts/smoke-study-guide-pdf.ts",
+    "smoke:quiz-validate": "tsx scripts/smoke-quiz-validate.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
+    "@react-pdf/renderer": "^4.5.1",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.111.0",
     "date-fns": "^4.4.0",

@@ -1,9 +1,21 @@
 import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
-import { CalendarView, type CalendarEvent } from "@/components/CalendarView";
+import {
+  CalendarView,
+  type AssessmentCalItem,
+  type PersonalCalItem,
+} from "@/components/CalendarView";
 import { createClient } from "@/lib/supabase/server";
-import type { AssessmentRow, ClassRow } from "@/lib/types";
+import type {
+  AssessmentRow,
+  CalendarEventRow,
+  ClassRow,
+} from "@/lib/types";
 
+/**
+ * Calendar shows syllabus assessments (by due_date) plus personal reminders.
+ * Assessments are created by syllabus parse — not by the class page (scores only).
+ */
 export default async function CalendarPage() {
   const supabase = createClient();
   const {
@@ -14,37 +26,70 @@ export default async function CalendarPage() {
   const { data: classes } = await supabase
     .from("classes")
     .select("*")
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: true });
 
   const classList = (classes ?? []) as ClassRow[];
   const ids = classList.map((c) => c.id);
+  const byId = new Map(classList.map((c) => [c.id, c]));
 
-  const { data: assessments } =
+  const [{ data: assessments }, { data: personal }] = await Promise.all([
     ids.length > 0
-      ? await supabase.from("assessments").select("*").in("class_id", ids)
-      : { data: [] };
+      ? supabase.from("assessments").select("*").in("class_id", ids)
+      : Promise.resolve({ data: [] as AssessmentRow[] }),
+    supabase
+      .from("calendar_events")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("event_date", { ascending: true }),
+  ]);
 
-  const all = (assessments ?? []) as AssessmentRow[];
-  const events: CalendarEvent[] = classList.flatMap((c) =>
-    all
-      .filter((a) => a.class_id === c.id)
-      .map((a) => ({
-        ...a,
-        className: c.code || c.name,
-        classId: c.id,
-      }))
-  );
+  const assessmentItems: AssessmentCalItem[] = (
+    (assessments ?? []) as AssessmentRow[]
+  )
+    .filter((a) => a.due_date)
+    .map((a) => {
+      const c = byId.get(a.class_id);
+      return {
+        kind: "assessment" as const,
+        id: a.id,
+        title: a.title,
+        date: a.due_date!,
+        classId: a.class_id,
+        classLabel: c ? c.code || c.name : "Class",
+        type: a.type,
+      };
+    });
+
+  const personalItems: PersonalCalItem[] = (
+    (personal ?? []) as CalendarEventRow[]
+  ).map((e) => {
+    const c = e.class_id ? byId.get(e.class_id) : undefined;
+    return {
+      kind: "personal" as const,
+      id: e.id,
+      title: e.title,
+      date: e.event_date,
+      classId: e.class_id,
+      classLabel: c ? c.code || c.name : null,
+      userId: e.user_id,
+    };
+  });
 
   return (
     <div>
       <AppNav email={user.email} />
       <main className="mx-auto max-w-6xl px-6 py-10">
-        <h1 className="font-display text-4xl">Calendar</h1>
+        <h1 className="font-heading text-4xl">Calendar</h1>
         <p className="mt-2 text-[var(--muted)]">
-          Assignments and exams from your syllabi in one place.
+          Assignments from syllabi plus your personal reminders.
         </p>
         <div className="mt-8">
-          <CalendarView events={events} />
+          <CalendarView
+            assessments={assessmentItems}
+            personalEvents={personalItems}
+            classes={classList}
+          />
         </div>
       </main>
     </div>

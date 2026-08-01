@@ -43,7 +43,7 @@ export default function OnboardingUploadPage() {
       <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--accent)]">
         Get started
       </p>
-      <h1 className="font-display mt-3 text-4xl md:text-5xl">
+      <h1 className="font-heading mt-3 text-4xl md:text-5xl">
         Upload a syllabus
       </h1>
       <p className="mt-3 text-[var(--muted)]">

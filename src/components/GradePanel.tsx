@@ -62,6 +62,33 @@ export function GradePanel({ classRow, assessments: initial }: Props) {
       return;
     }
     const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setError("Not signed in");
+      return;
+    }
+
+    const before = assessments.find((a) => a.id === id);
+    const averageBefore = computeGradeProjection(
+      assessments,
+      hasTarget ? targetPercent : null
+    ).currentPercent;
+
+    const { error: histError } = await supabase.from("score_history").insert({
+      user_id: user.id,
+      class_id: classRow.id,
+      assessment_id: id,
+      old_score: before?.score ?? null,
+      new_score: value,
+      class_average_before: averageBefore,
+    });
+    if (histError) {
+      // Still allow score save if history table missing during rollout
+      console.warn("score_history:", histError.message);
+    }
+
     const { error: updError } = await supabase
       .from("assessments")
       .update({ score: value })
@@ -78,13 +105,13 @@ export function GradePanel({ classRow, assessments: initial }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="surface rounded-2xl p-5">
+      <div className="surface rounded-2xl p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-wide text-[var(--muted)]">
               Current average
             </p>
-            <p className="font-display mt-1 text-4xl">
+            <p className="font-heading mt-1 text-4xl">
               {projection.currentPercent != null
                 ? `${projection.currentPercent.toFixed(1)}%`
                 : "—"}

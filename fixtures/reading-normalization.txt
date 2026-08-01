@@ -1,0 +1,16 @@
+CIS 8040 — Database Normalization Reading
+Chapter 3: Functional Dependencies and Normal Forms
+
+Key idea: A relation is in Third Normal Form (3NF) when every non-prime attribute
+is non-transitively dependent on every candidate key.
+
+Armstrong's axioms:
+1. Reflexivity
+2. Augmentation  
+3. Transitivity
+
+Boyce-Codd Normal Form (BCNF) is stricter than 3NF: for every non-trivial FD X -> A,
+X must be a superkey.
+
+Example: STUDENT_COURSE(student_id, course_id, instructor, office)
+may violate BCNF if instructor -> office and instructor is not a key.

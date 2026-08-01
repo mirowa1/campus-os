@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { parseSyllabusWithClaude } from "@/lib/claude";
 import { extractSyllabusContent } from "@/lib/extract";
 import { createClient } from "@/lib/supabase/server";
@@ -70,6 +71,8 @@ export async function POST(request: NextRequest) {
         name: parsed.name,
         code: parsed.code,
         term: parsed.term,
+        syllabus_path: uploadError ? null : path,
+        syllabus_file_name: uploadError ? null : file.name,
       })
       .select()
       .single();
@@ -107,6 +110,9 @@ export async function POST(request: NextRequest) {
       .select("*")
       .eq("class_id", classRow.id)
       .order("due_date", { ascending: true, nullsFirst: false });
+
+    // Soft-invalidate calendar so new due dates appear without a hard refresh.
+    revalidatePath("/calendar");
 
     return NextResponse.json({
       class: classRow,

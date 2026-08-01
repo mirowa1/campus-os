@@ -35,58 +35,61 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
-      <Link href="/" className="font-display mb-10 text-2xl">
-        CampusOS
-      </Link>
-      <h1 className="font-display text-4xl">Welcome back</h1>
-      <p className="mt-2 text-[var(--muted)]">Log in to your semester.</p>
-
-      <form onSubmit={onSubmit} className="mt-8 space-y-4">
-        <div>
-          <label className="label" htmlFor="email">
-            Email
-          </label>
-          <input
-            id="email"
-            className="input"
-            type="email"
-            required
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="label" htmlFor="password">
-            Password
-          </label>
-          <input
-            id="password"
-            className="input"
-            type="password"
-            required
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
-        {error && (
-          <p className="rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-3 py-2 text-sm text-[var(--danger)]">
-            {error}
-          </p>
-        )}
-        <button type="submit" className="btn btn-primary w-full" disabled={loading}>
-          {loading ? "Logging in…" : "Log in"}
-        </button>
-      </form>
-
-      <p className="mt-6 text-sm text-[var(--muted)]">
-        New here?{" "}
-        <Link href="/signup" className="text-[var(--accent)] hover:underline">
-          Sign up
+    <main className="hero-blob-shell relative flex min-h-screen w-full flex-col justify-center px-6 py-12">
+      <div className="hero-blob" aria-hidden />
+      <div className="relative z-10 mx-auto w-full max-w-md">
+        <Link href="/" className="font-display mb-10 inline-block text-2xl">
+          CoreMax
         </Link>
-      </p>
+        <h1 className="font-heading text-4xl">Welcome back</h1>
+        <p className="mt-2 text-[var(--muted)]">Log in to your semester.</p>
+
+        <form onSubmit={onSubmit} className="mt-8 space-y-4">
+          <div>
+            <label className="label" htmlFor="email">
+              Email
+            </label>
+            <input
+              id="email"
+              className="input"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="password">
+              Password
+            </label>
+            <input
+              id="password"
+              className="input"
+              type="password"
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          {error && (
+            <p className="rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-3 py-2 text-sm text-[var(--danger)]">
+              {error}
+            </p>
+          )}
+          <button type="submit" className="btn btn-primary w-full" disabled={loading}>
+            {loading ? "Logging in…" : "Log in"}
+          </button>
+        </form>
+
+        <p className="mt-6 text-sm text-[var(--muted)]">
+          New here?{" "}
+          <Link href="/signup" className="text-[var(--accent)] hover:underline">
+            Sign up
+          </Link>
+        </p>
+      </div>
     </main>
   );
 }
