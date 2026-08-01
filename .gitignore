@@ -33,6 +33,7 @@ yarn-error.log*
 
 # large local test fixtures
 fixtures/too-big.bin
+fixtures/*.pdf
 
 # vercel
 .vercel

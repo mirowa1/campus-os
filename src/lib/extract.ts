@@ -46,8 +46,11 @@ export async function extractSyllabusContent(
   }
 
   if (mime === "application/pdf" || lower.endsWith(".pdf")) {
+    // pdfjs-dist (via pdf-parse) needs CanvasFactory on Node/Vercel or
+    // it throws ReferenceError: DOMMatrix is not defined.
+    const { CanvasFactory } = await import("pdf-parse/worker");
     const { PDFParse } = await import("pdf-parse");
-    const parser = new PDFParse({ data: buffer });
+    const parser = new PDFParse({ data: buffer, CanvasFactory });
     try {
       const data = await parser.getText();
       return { kind: "text", text: data.text };
