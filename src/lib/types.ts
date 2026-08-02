@@ -99,6 +99,7 @@ export interface ResumeRow {
   created_at: string;
   updated_at: string;
   generated_content: TailoredResumeContent | null;
+  generated_html: string | null;
 }
 
 export interface ResumeCertification {
@@ -124,6 +125,7 @@ export interface ResumeExperienceEntry {
 export interface ResumeDataRow {
   resume_id: string;
   full_name: string | null;
+  city: string | null;
   state: string | null;
   phone: string | null;
   work_email: string | null;
@@ -133,6 +135,8 @@ export interface ResumeDataRow {
   major: string | null;
   concentration: string | null;
   minor: string | null;
+  education_location: string | null;
+  education_state: string | null;
   achievements: string[];
   certifications: ResumeCertification[];
   projects: ResumeProjectEntry[];
@@ -149,6 +153,7 @@ export interface TailoredResumeContent {
     school: string;
     degreeLine: string;
     location?: string | null;
+    state?: string | null;
     date?: string | null;
     details?: string[];
   };

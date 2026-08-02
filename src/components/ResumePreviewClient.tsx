@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { pdf } from "@react-pdf/renderer";
 import {
   ResumePreviewPaper,
+  type ContentUpdater,
   type ResumeContact,
 } from "@/components/ResumePreviewPaper";
 import { ResumePdfDocument } from "@/components/ResumePdfDocument";
 import { createClient } from "@/lib/supabase/client";
+import { buildResumeDocxBlob } from "@/lib/resume-docx";
 import {
   normalizeTailoredResume,
   parseTailoredResume,
@@ -22,32 +24,38 @@ type Props = {
   initialContent: TailoredResumeContent;
 };
 
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function ResumePreviewClient({
   resumeId,
   template,
-  contact,
+  contact: initialContact,
   initialContent,
 }: Props) {
   const router = useRouter();
+  const [contact, setContact] = useState<ResumeContact>(initialContact);
   const [content, setContent] = useState(() =>
     normalizeTailoredResume(initialContent)
   );
   const [saving, setSaving] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+  const [downloading, setDownloading] = useState<"pdf" | "docx" | null>(null);
   const [regenerating, setRegenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
 
-  function onBulletChange(expIndex: number, bulletIndex: number, value: string) {
-    setContent((prev) => ({
-      ...prev,
-      experience: (prev.experience ?? []).map((e, i) => {
-        if (i !== expIndex) return e;
-        const bullets = [...(e.bullets ?? [])];
-        bullets[bulletIndex] = value;
-        return { ...e, bullets };
-      }),
-    }));
+  function onContactChange(patch: Partial<ResumeContact>) {
+    setContact((prev) => ({ ...prev, ...patch }));
+  }
+
+  function onContentChange(updater: ContentUpdater) {
+    setContent((prev) => normalizeTailoredResume(updater(prev)));
   }
 
   async function saveEdits() {
@@ -55,6 +63,23 @@ export function ResumePreviewClient({
     setError(null);
     setStatus(null);
     const supabase = createClient();
+    const { error: contactError } = await supabase
+      .from("resume_data")
+      .update({
+        full_name: contact.full_name,
+        city: contact.city,
+        state: contact.state,
+        phone: contact.phone,
+        work_email: contact.work_email,
+        linkedin: contact.linkedin,
+        professional_title: contact.professional_title,
+      })
+      .eq("resume_id", resumeId);
+    if (contactError) {
+      setSaving(false);
+      setError(contactError.message);
+      return;
+    }
     const { error: updError } = await supabase
       .from("resumes")
       .update({
@@ -104,8 +129,14 @@ export function ResumePreviewClient({
     }
   }
 
+  function fileBase() {
+    return (
+      (contact.full_name || "Resume").trim().replace(/\s+/g, "_") || "Resume"
+    );
+  }
+
   async function downloadPdf() {
-    setDownloading(true);
+    setDownloading("pdf");
     setError(null);
     try {
       const blob = await pdf(
@@ -115,19 +146,29 @@ export function ResumePreviewClient({
           content={content}
         />
       ).toBlob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const base =
-        (contact.full_name || "Resume").trim().replace(/\s+/g, "_") || "Resume";
-      a.href = url;
-      a.download = `${base}_Resume.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, `${fileBase()}_Resume.pdf`);
     } catch (err) {
       console.error(err);
       setError("PDF download failed. Please try again.");
     }
-    setDownloading(false);
+    setDownloading(null);
+  }
+
+  async function downloadDocx() {
+    setDownloading("docx");
+    setError(null);
+    try {
+      const blob = await buildResumeDocxBlob({
+        template,
+        contact,
+        content,
+      });
+      downloadBlob(blob, `${fileBase()}_Resume.docx`);
+    } catch (err) {
+      console.error(err);
+      setError("Word download failed. Please try again.");
+    }
+    setDownloading(null);
   }
 
   return (
@@ -136,8 +177,8 @@ export function ResumePreviewClient({
         <div>
           <h1 className="font-heading text-3xl">Resume preview</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Template {template}. Click a bullet to edit phrasing. We only used
-            your intake data.
+            Template {template}. Click any text to edit. Save edits to keep
+            changes. We only used your intake data.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -166,11 +207,19 @@ export function ResumePreviewClient({
           </button>
           <button
             type="button"
+            className="btn btn-ghost text-xs"
+            onClick={() => void downloadDocx()}
+            disabled={downloading != null}
+          >
+            {downloading === "docx" ? "Preparing…" : "Download Word (.docx)"}
+          </button>
+          <button
+            type="button"
             className="btn btn-primary text-xs"
             onClick={() => void downloadPdf()}
-            disabled={downloading}
+            disabled={downloading != null}
           >
-            {downloading ? "Preparing…" : "Download PDF"}
+            {downloading === "pdf" ? "Preparing…" : "Download PDF"}
           </button>
         </div>
       </div>
@@ -195,13 +244,14 @@ export function ResumePreviewClient({
         <p className="text-sm text-[var(--accent-cyan)]">{status}</p>
       )}
 
-      <div className="overflow-x-auto rounded-2xl border border-[var(--line)] bg-[var(--bg-soft)] p-4 sm:p-8">
+      <div className="overflow-x-auto overflow-y-visible rounded-2xl border border-[var(--line)] bg-[var(--bg-soft)] p-4 sm:p-8">
         <ResumePreviewPaper
           template={template}
           contact={contact}
           content={content}
           editable
-          onBulletChange={onBulletChange}
+          onContactChange={onContactChange}
+          onContentChange={onContentChange}
         />
       </div>
     </div>

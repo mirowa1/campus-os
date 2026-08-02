@@ -109,6 +109,7 @@ export function emptyResumeData(resumeId: string): ResumeDataRow {
   return {
     resume_id: resumeId,
     full_name: null,
+    city: null,
     state: null,
     phone: null,
     work_email: null,
@@ -118,6 +119,8 @@ export function emptyResumeData(resumeId: string): ResumeDataRow {
     major: null,
     concentration: null,
     minor: null,
+    education_location: null,
+    education_state: null,
     achievements: [],
     certifications: [],
     projects: [],

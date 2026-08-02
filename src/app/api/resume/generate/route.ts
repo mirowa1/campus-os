@@ -1,25 +1,12 @@
 import { NextResponse } from "next/server";
-import { generateResumeWithClaude } from "@/lib/claude";
+import { generateResumeHtmlWithClaude } from "@/lib/claude";
+import { assertValidResumeHtml, wrapResumeDocument } from "@/lib/resume-html";
 import { getTemplateSpec, isResumeTemplateId } from "@/lib/resume-templates";
-import { parseTailoredResume } from "@/lib/resume-validate";
 import { createClient } from "@/lib/supabase/server";
 import type { ResumeDataRow } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
-
-function intakeHasExperience(userData: ResumeDataRow): boolean {
-  return userData.experience.some(
-    (e) =>
-      (typeof e?.title === "string" && e.title.trim()) ||
-      (typeof e?.company === "string" && e.company.trim())
-  );
-}
-
-function tryParseTailored(rawText: string, requireExperience: boolean) {
-  const parsed = JSON.parse(rawText) as unknown;
-  return parseTailoredResume(parsed, { requireExperience });
-}
 
 export async function POST(request: Request) {
   try {
@@ -85,6 +72,7 @@ export async function POST(request: Request) {
     const userData: ResumeDataRow = {
       resume_id: raw.resume_id,
       full_name: raw.full_name,
+      city: raw.city ?? null,
       state: raw.state,
       phone: raw.phone,
       work_email: raw.work_email,
@@ -94,6 +82,8 @@ export async function POST(request: Request) {
       major: raw.major,
       concentration: raw.concentration,
       minor: raw.minor,
+      education_location: raw.education_location ?? null,
+      education_state: raw.education_state ?? null,
       achievements: Array.isArray(raw.achievements) ? raw.achievements : [],
       certifications: Array.isArray(raw.certifications)
         ? raw.certifications
@@ -105,40 +95,40 @@ export async function POST(request: Request) {
       experience: Array.isArray(raw.experience) ? raw.experience : [],
     };
 
-    const requireExperience = intakeHasExperience(userData);
-    let tailored;
+    let html: string | null = null;
     let lastError = "Resume generation failed, please try again";
 
     for (let attempt = 0; attempt < 2; attempt++) {
       let text = "";
       try {
-        text = await generateResumeWithClaude({
+        text = await generateResumeHtmlWithClaude({
           userData,
           templateId: templateChoice,
           templateSpec: {
             name: templateSpec.name,
             sectionOrder: templateSpec.sectionOrder,
             formattingNotes: templateSpec.formattingNotes,
+            htmlStyleBrief: templateSpec.htmlStyleBrief,
           },
         });
-        tailored = tryParseTailored(text, requireExperience);
+        html = wrapResumeDocument(assertValidResumeHtml(text));
         break;
       } catch (err) {
         lastError =
           err instanceof Error
             ? err.message
             : "Resume generation failed, please try again";
-        console.error(`resume/generate attempt ${attempt + 1}:`, err);
+        console.error(`resume/generate HTML attempt ${attempt + 1}:`, err);
         if (text) {
           console.error(
-            `resume/generate raw Claude (truncated):`,
+            `resume/generate raw Claude HTML (truncated):`,
             text.slice(0, 4000)
           );
         }
       }
     }
 
-    if (!tailored) {
+    if (!html) {
       return NextResponse.json(
         {
           error: "Resume generation failed, please try again",
@@ -148,19 +138,30 @@ export async function POST(request: Request) {
       );
     }
 
+    // Save HTML; leave generated_content untouched for rollback.
     const { error: saveError } = await supabase
       .from("resumes")
       .update({
         template_choice: templateChoice,
-        generated_content: tailored,
+        generated_html: html,
         updated_at: new Date().toISOString(),
       })
       .eq("id", resume.id)
       .eq("user_id", user.id);
 
     if (saveError) {
+      console.error("resume/generate save error:", {
+        message: saveError.message,
+        code: saveError.code,
+        details: saveError.details,
+        hint: saveError.hint,
+      });
       return NextResponse.json(
-        { error: "Generated but failed to save. Please try again." },
+        {
+          error: "Generated but failed to save. Please try again.",
+          detail: saveError.message,
+          code: saveError.code,
+        },
         { status: 500 }
       );
     }
@@ -168,15 +169,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       resumeId: resume.id,
       templateChoice,
-      content: tailored,
-      contact: {
-        full_name: userData.full_name,
-        state: userData.state,
-        phone: userData.phone,
-        work_email: userData.work_email,
-        linkedin: userData.linkedin,
-        professional_title: userData.professional_title,
-      },
+      html,
     });
   } catch (err) {
     console.error("resume/generate:", err);

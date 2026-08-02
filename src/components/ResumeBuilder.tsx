@@ -58,6 +58,7 @@ export function ResumeBuilder({ resume, initialData }: Props) {
     Math.min(5, Math.max(1, resume.current_step || 1))
   );
   const [fullName, setFullName] = useState(initialData.full_name ?? "");
+  const [city, setCity] = useState(initialData.city ?? "");
   const [state, setState] = useState(() => {
     const s = initialData.state ?? "";
     return isValidStateCode(s) ? s : "";
@@ -80,6 +81,13 @@ export function ResumeBuilder({ resume, initialData }: Props) {
     initialData.concentration ?? ""
   );
   const [minor, setMinor] = useState(initialData.minor ?? "");
+  const [educationLocation, setEducationLocation] = useState(
+    initialData.education_location ?? ""
+  );
+  const [educationState, setEducationState] = useState(() => {
+    const s = initialData.education_state ?? "";
+    return isValidStateCode(s) ? s : s;
+  });
   const [achievementsText, setAchievementsText] = useState(
     normalizeAchievements(initialData.achievements).join("\n")
   );
@@ -110,6 +118,7 @@ export function ResumeBuilder({ resume, initialData }: Props) {
   const snapshot = (): ResumeDataRow => ({
     resume_id: resume.id,
     full_name: fullName.trim() || null,
+    city: city.trim() || null,
     state: state.trim() || null,
     phone: phone.trim() || null,
     work_email: workEmail.trim() || null,
@@ -119,6 +128,8 @@ export function ResumeBuilder({ resume, initialData }: Props) {
     major: resolvedMajor || null,
     concentration: concentration.trim() || null,
     minor: minor.trim() || null,
+    education_location: educationLocation.trim() || null,
+    education_state: educationState.trim() || null,
     achievements: textToAchievements(achievementsText),
     certifications: certifications.filter((c) => c.label.trim()),
     projects: projects.filter((p) => p.title.trim() || p.description.trim()),
@@ -140,6 +151,7 @@ export function ResumeBuilder({ resume, initialData }: Props) {
     const { error: dataError } = await supabase.from("resume_data").upsert({
       resume_id: resume.id,
       full_name: data.full_name,
+      city: data.city,
       state: data.state,
       phone: data.phone,
       work_email: data.work_email,
@@ -149,6 +161,8 @@ export function ResumeBuilder({ resume, initialData }: Props) {
       major: data.major,
       concentration: data.concentration,
       minor: data.minor,
+      education_location: data.education_location,
+      education_state: data.education_state,
       achievements: data.achievements,
       certifications: data.certifications,
       projects: data.projects,
@@ -282,6 +296,7 @@ export function ResumeBuilder({ resume, initialData }: Props) {
   function resetLocalForm() {
     setStep(1);
     setFullName("");
+    setCity("");
     setState("");
     setPhone("");
     setWorkEmail("");
@@ -292,6 +307,8 @@ export function ResumeBuilder({ resume, initialData }: Props) {
     setCustomMajor("");
     setConcentration("");
     setMinor("");
+    setEducationLocation("");
+    setEducationState("");
     setAchievementsText("");
     setCertifications([]);
     setCustomCert("");
@@ -314,6 +331,7 @@ export function ResumeBuilder({ resume, initialData }: Props) {
       .from("resume_data")
       .update({
         full_name: null,
+        city: null,
         state: null,
         phone: null,
         work_email: null,
@@ -323,6 +341,8 @@ export function ResumeBuilder({ resume, initialData }: Props) {
         major: null,
         concentration: null,
         minor: null,
+        education_location: null,
+        education_state: null,
         achievements: [],
         certifications: [],
         projects: [],
@@ -341,6 +361,7 @@ export function ResumeBuilder({ resume, initialData }: Props) {
         current_step: 1,
         template_choice: null,
         generated_content: null,
+        generated_html: null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", resume.id);
@@ -422,23 +443,32 @@ export function ResumeBuilder({ resume, initialData }: Props) {
           <>
             <h2 className="font-heading text-xl">Contact</h2>
             <Field label="Full name" id="full_name" value={fullName} onChange={setFullName} required />
-            <div>
-              <label className="label" htmlFor="state">
-                State
-              </label>
-              <select
-                id="state"
-                className="input"
-                value={state}
-                onChange={(e) => setState(e.target.value)}
-              >
-                <option value="">Select state</option>
-                {US_STATES.map((s) => (
-                  <option key={s.code} value={s.code}>
-                    {s.code} — {s.name}
-                  </option>
-                ))}
-              </select>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field
+                label="City"
+                id="city"
+                value={city}
+                onChange={setCity}
+                placeholder="City"
+              />
+              <div>
+                <label className="label" htmlFor="state">
+                  State
+                </label>
+                <select
+                  id="state"
+                  className="input"
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                >
+                  <option value="">Select state</option>
+                  {US_STATES.map((s) => (
+                    <option key={s.code} value={s.code}>
+                      {s.code} — {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
             <Field label="Phone" id="phone" value={phone} onChange={setPhone} />
             <Field
@@ -454,7 +484,7 @@ export function ResumeBuilder({ resume, initialData }: Props) {
               id="linkedin"
               value={linkedin}
               onChange={setLinkedin}
-              placeholder="https://linkedin.com/in/…"
+              placeholder="linkedin.com/in/…"
             />
           </>
         )}
@@ -509,6 +539,33 @@ export function ResumeBuilder({ resume, initialData }: Props) {
               onChange={setConcentration}
             />
             <Field label="Minor (optional)" id="minor" value={minor} onChange={setMinor} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field
+                label="School location (city)"
+                id="education_location"
+                value={educationLocation}
+                onChange={setEducationLocation}
+                placeholder="City"
+              />
+              <div>
+                <label className="label" htmlFor="education_state">
+                  School state
+                </label>
+                <select
+                  id="education_state"
+                  className="input"
+                  value={educationState}
+                  onChange={(e) => setEducationState(e.target.value)}
+                >
+                  <option value="">Select state</option>
+                  {US_STATES.map((s) => (
+                    <option key={s.code} value={s.code}>
+                      {s.code} — {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </>
         )}
 

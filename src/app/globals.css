@@ -162,6 +162,17 @@ body {
 }
 
 /* Landing page only — full-bleed hero (edge to edge) */
+/* Resume preview paper — never clip multi-line text */
+.resume-paper {
+  overflow: visible;
+}
+.resume-paper input,
+.resume-paper textarea,
+.resume-paper button {
+  overflow: visible;
+  max-height: none;
+}
+
 .landing-hero {
   position: relative;
   isolation: isolate;

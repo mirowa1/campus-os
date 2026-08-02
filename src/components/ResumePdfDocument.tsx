@@ -7,6 +7,12 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer";
 import type { ResumeContact } from "@/components/ResumePreviewPaper";
+import {
+  displayLinkedIn,
+  formatPlace,
+  hasText,
+  joinNonEmpty,
+} from "@/lib/resume-format";
 import type { ResumeTemplateId, TailoredResumeContent } from "@/lib/types";
 
 const styles = StyleSheet.create({
@@ -98,16 +104,15 @@ const styles = StyleSheet.create({
 });
 
 function contactLine(c: ResumeContact): string {
-  return [c.phone, c.work_email, c.state, c.linkedin]
-    .filter((x) => x?.trim())
-    .join("  |  ");
-}
-
-function formatPlace(location: string, state?: string | null): string {
-  const loc = location?.trim() || "";
-  const st = state?.trim() || "";
-  if (loc && st) return `${loc}, ${st}`;
-  return loc || st;
+  return joinNonEmpty(
+    [
+      c.phone,
+      c.work_email,
+      formatPlace(c.city, c.state),
+      displayLinkedIn(c.linkedin),
+    ],
+    "  |  "
+  );
 }
 
 function Bullets({ items }: { items: string[] | undefined | null }) {
@@ -148,6 +153,26 @@ function TwoCol({ items }: { items: string[] }) {
   );
 }
 
+function StringListSection({
+  title,
+  items,
+}: {
+  title: string;
+  items: string[];
+}) {
+  return (
+    <>
+      <Text style={styles.section}>{title}</Text>
+      {items.map((x, i) => (
+        <View key={i} style={styles.bulletRow}>
+          <Text style={styles.bulletGlyph}>•</Text>
+          <Text style={styles.bulletText}>{x}</Text>
+        </View>
+      ))}
+    </>
+  );
+}
+
 export function ResumePdfDocument({
   template,
   contact,
@@ -164,6 +189,7 @@ export function ResumePdfDocument({
       school: "",
       degreeLine: "",
       location: null,
+      state: null,
       date: null,
       details: [],
     },
@@ -171,6 +197,10 @@ export function ResumePdfDocument({
   const name = contact.full_name?.trim() || "Your Name";
   const line = contactLine(contact);
   const pageStyle = template === "A" ? styles.page : styles.pageSans;
+  const eduPlace = formatPlace(
+    content.education.location,
+    content.education.state
+  );
 
   return (
     <Document>
@@ -178,26 +208,29 @@ export function ResumePdfDocument({
         {template === "A" && (
           <>
             <Text style={styles.nameCenter}>{name}</Text>
-            <Text style={styles.contact}>{line}</Text>
+            {hasText(line) ? <Text style={styles.contact}>{line}</Text> : null}
           </>
         )}
         {template === "B" && (
           <>
             <Text style={styles.nameLeft}>{name}</Text>
-            {contact.professional_title ? (
+            {hasText(contact.professional_title) ? (
               <Text style={styles.muted}>{contact.professional_title}</Text>
             ) : null}
-            <Text style={styles.contactLeft}>{line}</Text>
+            {hasText(line) ? (
+              <Text style={styles.contactLeft}>{line}</Text>
+            ) : null}
           </>
         )}
         {template === "C" && (
           <>
             <Text style={styles.nameCaps}>{name}</Text>
-            <Text style={styles.contact}>{line}</Text>
+            {hasText(line) ? <Text style={styles.contact}>{line}</Text> : null}
           </>
         )}
 
-        {(template === "B" || template === "C") && content.summary ? (
+        {(template === "B" || template === "C") &&
+        hasText(content.summary) ? (
           <>
             <Text style={styles.section}>Summary</Text>
             <Text style={styles.body}>{content.summary}</Text>
@@ -211,7 +244,7 @@ export function ResumePdfDocument({
           </>
         ) : null}
 
-        {template === "A" || template === "C" ? (
+        {(template === "A" || template === "C") && (
           <>
             <Text style={styles.section}>Education</Text>
             <View style={styles.row}>
@@ -221,54 +254,92 @@ export function ResumePdfDocument({
                     ? content.education.degreeLine
                     : content.education.school}
                 </Text>
-                <Text style={styles.muted}>
-                  {template === "C"
-                    ? `${content.education.school}${content.education.date ? ` · ${content.education.date}` : ""}`
-                    : content.education.degreeLine}
-                </Text>
+                {template === "C" ? (
+                  <Text style={styles.muted}>
+                    {joinNonEmpty(
+                      [content.education.school, content.education.date],
+                      " · "
+                    )}
+                  </Text>
+                ) : (
+                  <Text style={styles.muted}>
+                    {content.education.degreeLine}
+                  </Text>
+                )}
+                {template === "A"
+                  ? (content.education.details ?? []).map((d, i) => (
+                      <Text key={i} style={styles.muted}>
+                        {d}
+                      </Text>
+                    ))
+                  : null}
+                {template === "C" && hasText(eduPlace) ? (
+                  <Text style={styles.muted}>{eduPlace}</Text>
+                ) : null}
               </View>
               {template === "A" ? (
                 <View>
-                  <Text style={styles.muted}>{content.education.location}</Text>
-                  <Text style={styles.muted}>{content.education.date}</Text>
+                  {hasText(eduPlace) ? (
+                    <Text style={styles.muted}>{eduPlace}</Text>
+                  ) : null}
+                  {hasText(content.education.date) ? (
+                    <Text style={styles.muted}>{content.education.date}</Text>
+                  ) : null}
                 </View>
               ) : null}
             </View>
           </>
-        ) : null}
+        )}
 
         <Text style={styles.section}>
           {template === "B" ? "Professional Experience" : "Experience"}
         </Text>
-        {content.experience.map((e, i) => (
-          <View key={i} style={{ marginTop: 6 }}>
-            <View style={styles.row}>
-              <Text style={styles.bold}>
-                {template === "B"
-                  ? `${e.title} — ${e.company}`
-                  : template === "C"
-                    ? `${e.title}, ${e.company}`
-                    : e.title}
-              </Text>
-              <Text style={styles.muted}>
-                {template === "A"
-                  ? formatPlace(e.location, e.state)
-                  : e.endDate}
-              </Text>
-            </View>
-            {template === "A" ? (
+        {content.experience.map((e, i) => {
+          const place = formatPlace(e.location, e.state);
+          const titleCompany =
+            template === "B"
+              ? joinNonEmpty([e.title, e.company], " — ")
+              : template === "C"
+                ? joinNonEmpty([e.title, e.company], ", ")
+                : e.title;
+          return (
+            <View key={i} style={{ marginTop: 6 }}>
               <View style={styles.row}>
-                <Text style={styles.italic}>{e.company}</Text>
-                <Text style={styles.muted}>{e.endDate}</Text>
+                {hasText(titleCompany) ? (
+                  <Text style={styles.bold}>{titleCompany}</Text>
+                ) : (
+                  <Text />
+                )}
+                <Text style={styles.muted}>
+                  {template === "A"
+                    ? place
+                    : hasText(e.endDate)
+                      ? e.endDate
+                      : ""}
+                </Text>
               </View>
-            ) : (
-              <Text style={styles.muted}>
-                {formatPlace(e.location, e.state)}
-              </Text>
-            )}
-            <Bullets items={e.bullets} />
-          </View>
-        ))}
+              {template === "A" ? (
+                <>
+                  {(hasText(e.company) || hasText(e.endDate)) && (
+                    <View style={styles.row}>
+                      {hasText(e.company) ? (
+                        <Text style={styles.italic}>{e.company}</Text>
+                      ) : (
+                        <Text />
+                      )}
+                      {hasText(e.endDate) ? (
+                        <Text style={styles.muted}>{e.endDate}</Text>
+                      ) : null}
+                    </View>
+                  )}
+                </>
+              ) : hasText(place) ? (
+                <Text style={styles.muted}>{place}</Text>
+              ) : null}
+              <Bullets items={e.bullets} />
+            </View>
+          );
+        })}
 
         {template === "B" ? (
           <>
@@ -278,33 +349,36 @@ export function ResumePdfDocument({
                 <Text style={styles.bold}>{content.education.school}</Text>
                 <Text style={styles.muted}>{content.education.degreeLine}</Text>
               </View>
-              <Text style={styles.muted}>{content.education.date}</Text>
+              <View>
+                {hasText(eduPlace) ? (
+                  <Text style={styles.muted}>{eduPlace}</Text>
+                ) : null}
+                {hasText(content.education.date) ? (
+                  <Text style={styles.muted}>{content.education.date}</Text>
+                ) : null}
+              </View>
             </View>
           </>
         ) : null}
 
-        {template === "A" && (content.projects?.length ?? 0) > 0 ? (
+        {(content.projects?.length ?? 0) > 0 ? (
           <>
             <Text style={styles.section}>Projects</Text>
             {content.projects!.map((p, i) => (
               <View key={i} style={{ marginTop: 4 }}>
                 <View style={styles.row}>
-                  <Text style={styles.bold}>{p.title}</Text>
-                  <Text style={styles.muted}>{p.dateContext}</Text>
+                  {hasText(p.title) ? (
+                    <Text style={styles.bold}>{p.title}</Text>
+                  ) : (
+                    <Text />
+                  )}
+                  {hasText(p.dateContext) ? (
+                    <Text style={styles.muted}>{p.dateContext}</Text>
+                  ) : null}
                 </View>
-                <Text style={styles.body}>{p.description}</Text>
-              </View>
-            ))}
-          </>
-        ) : null}
-
-        {template === "A" && (content.extracurriculars?.length ?? 0) > 0 ? (
-          <>
-            <Text style={styles.section}>Extracurriculars</Text>
-            {content.extracurriculars!.map((x, i) => (
-              <View key={i} style={styles.bulletRow}>
-                <Text style={styles.bulletGlyph}>•</Text>
-                <Text style={styles.bulletText}>{x}</Text>
+                {hasText(p.description) ? (
+                  <Text style={styles.body}>{p.description}</Text>
+                ) : null}
               </View>
             ))}
           </>
@@ -330,31 +404,14 @@ export function ResumePdfDocument({
           </>
         ) : null}
 
-        {template === "B" &&
-        [
-          ...(content.additional ?? []),
-          ...(content.certifications ?? []),
-          ...(content.achievements ?? []),
-          ...(content.extracurriculars ?? []),
-        ].length > 0 ? (
-          <>
-            <Text style={styles.section}>Additional Info</Text>
-            {[
-              ...(content.additional ?? []),
-              ...(content.certifications ?? []).map((c) => `Cert: ${c}`),
-              ...(content.achievements ?? []),
-              ...(content.extracurriculars ?? []),
-            ].map((x, i) => (
-              <View key={i} style={styles.bulletRow}>
-                <Text style={styles.bulletGlyph}>•</Text>
-                <Text style={styles.bulletText}>{x}</Text>
-              </View>
-            ))}
-          </>
+        {(content.extracurriculars?.length ?? 0) > 0 ? (
+          <StringListSection
+            title="Extracurriculars"
+            items={content.extracurriculars!}
+          />
         ) : null}
 
-        {(template === "A" || template === "C") &&
-        (content.certifications?.length ?? 0) > 0 ? (
+        {(content.certifications?.length ?? 0) > 0 ? (
           <>
             <Text style={styles.section}>Certifications</Text>
             {template === "C" ? (
@@ -370,16 +427,15 @@ export function ResumePdfDocument({
           </>
         ) : null}
 
-        {template === "A" && (content.achievements?.length ?? 0) > 0 ? (
-          <>
-            <Text style={styles.section}>Achievements</Text>
-            {content.achievements!.map((x, i) => (
-              <View key={i} style={styles.bulletRow}>
-                <Text style={styles.bulletGlyph}>•</Text>
-                <Text style={styles.bulletText}>{x}</Text>
-              </View>
-            ))}
-          </>
+        {(content.achievements?.length ?? 0) > 0 ? (
+          <StringListSection
+            title="Achievements"
+            items={content.achievements!}
+          />
+        ) : null}
+
+        {(content.additional?.length ?? 0) > 0 ? (
+          <StringListSection title="Additional" items={content.additional!} />
         ) : null}
       </Page>
     </Document>

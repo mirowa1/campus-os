@@ -22,6 +22,7 @@ export function normalizeTailoredResume(
       school: education?.school ?? "",
       degreeLine: education?.degreeLine ?? "",
       location: education?.location ?? null,
+      state: education?.state ?? null,
       date: education?.date ?? null,
       details: education?.details ?? [],
     },
@@ -105,11 +106,16 @@ export function parseTailoredResume(
     };
   });
 
+  if (edu.state != null && typeof edu.state !== "string") {
+    throw new Error("Invalid education.state");
+  }
+
   const result: TailoredResumeContent = {
     education: {
       school: edu.school,
       degreeLine: edu.degreeLine,
       location: typeof edu.location === "string" ? edu.location : null,
+      state: typeof edu.state === "string" ? edu.state : null,
       date: typeof edu.date === "string" ? edu.date : null,
       details: isStringArray(edu.details) ? edu.details : undefined,
     },

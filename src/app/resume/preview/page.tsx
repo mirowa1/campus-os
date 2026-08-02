@@ -1,11 +1,8 @@
 import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
-import { ResumePreviewClient } from "@/components/ResumePreviewClient";
+import { ResumeHtmlPreviewClient } from "@/components/ResumeHtmlPreviewClient";
+import { assertValidResumeHtml, wrapResumeDocument } from "@/lib/resume-html";
 import { isResumeTemplateId } from "@/lib/resume-templates";
-import {
-  normalizeTailoredResume,
-  parseTailoredResume,
-} from "@/lib/resume-validate";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ResumePreviewPage() {
@@ -17,25 +14,25 @@ export default async function ResumePreviewPage() {
 
   const { data: resume } = await supabase
     .from("resumes")
-    .select("id, template_choice, generated_content")
+    .select("id, template_choice, generated_html")
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  if (!resume?.generated_content || !isResumeTemplateId(resume.template_choice)) {
+  if (!resume?.generated_html || !isResumeTemplateId(resume.template_choice)) {
     redirect("/resume/generate");
   }
 
-  let initialContent;
+  let initialHtml: string;
   try {
-    initialContent = parseTailoredResume(resume.generated_content);
+    initialHtml = wrapResumeDocument(assertValidResumeHtml(resume.generated_html));
   } catch (err) {
-    console.error("resume/preview invalid generated_content:", err);
-    // Clear bad payload so generate page is the recovery path
+    console.error("resume/preview invalid generated_html:", err);
+    // Clear bad HTML only — leave generated_content for rollback
     await supabase
       .from("resumes")
-      .update({ generated_content: null })
+      .update({ generated_html: null })
       .eq("id", resume.id)
       .eq("user_id", user.id);
     redirect("/resume/generate");
@@ -43,9 +40,7 @@ export default async function ResumePreviewPage() {
 
   const { data: raw } = await supabase
     .from("resume_data")
-    .select(
-      "full_name, state, phone, work_email, linkedin, professional_title"
-    )
+    .select("full_name")
     .eq("resume_id", resume.id)
     .maybeSingle();
 
@@ -55,18 +50,11 @@ export default async function ResumePreviewPage() {
     <div className="min-h-screen">
       <AppNav email={user.email} />
       <main className="mx-auto max-w-5xl px-6 py-10">
-        <ResumePreviewClient
+        <ResumeHtmlPreviewClient
           resumeId={resume.id}
           template={resume.template_choice}
-          contact={{
-            full_name: raw.full_name,
-            state: raw.state,
-            phone: raw.phone,
-            work_email: raw.work_email,
-            linkedin: raw.linkedin,
-            professional_title: raw.professional_title,
-          }}
-          initialContent={normalizeTailoredResume(initialContent)}
+          initialHtml={initialHtml}
+          fileBaseName={raw.full_name || "Resume"}
         />
       </main>
     </div>

@@ -71,6 +71,7 @@ export default async function ResumePage() {
     initialData = {
       resume_id: rawData.resume_id,
       full_name: rawData.full_name,
+      city: rawData.city ?? null,
       state: rawData.state,
       phone: rawData.phone,
       work_email: rawData.work_email,
@@ -80,6 +81,8 @@ export default async function ResumePage() {
       major: rawData.major,
       concentration: rawData.concentration,
       minor: rawData.minor,
+      education_location: rawData.education_location ?? null,
+      education_state: rawData.education_state ?? null,
       achievements: normalizeAchievements(rawData.achievements),
       certifications: normalizeCertifications(rawData.certifications),
       projects: normalizeProjects(rawData.projects),

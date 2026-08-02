@@ -185,6 +185,70 @@ export async function generateStudyGuideWithClaude(input: {
   return stripFences(block.text).trim();
 }
 
+const RESUME_HTML_BASE = `You format a student resume as a complete, self-contained HTML document from structured user data.
+Improve phrasing — do NOT invent facts.
+
+Rules (strict):
+- Never invent companies, titles, dates, schools, metrics, tools, or accomplishments
+  not present in the source data.
+- You MAY rewrite bullets into stronger resume language (active verbs, concise phrasing)
+  only if the underlying fact stays the same.
+- Do not invent a Summary or skills lists. Only include summary/skills if they can be
+  derived strictly from provided title, certifications, achievements, or experience wording.
+- Omit sections with no grounded content.
+- Copy education_location / education_state and each experience title, company, location, state, endDate, bullets from user data — never drop company when provided.
+- Output HTML ONLY (no markdown fences, no prose before/after).
+- Self-contained: inline <style> in <head>; no external stylesheets, fonts CDNs, or scripts.
+- Include @page { size: letter; margin: 0.6in; } and body max-width suitable for US Letter.
+- Use semantic structure (header, sections, h1/h2, ul/li). Black/gray text on white.
+- Do not include <script>, event handlers, iframes, or remote images.`;
+
+export async function generateResumeHtmlWithClaude(input: {
+  userData: unknown;
+  templateId: string;
+  templateSpec: {
+    name: string;
+    sectionOrder: string[];
+    formattingNotes: string;
+    htmlStyleBrief: string;
+  };
+}): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "ANTHROPIC_API_KEY is not set. Add it to .env.local to generate resumes."
+    );
+  }
+
+  const client = new Anthropic({ apiKey });
+  const system = `${RESUME_HTML_BASE}
+
+Selected style: ${input.templateId} — ${input.templateSpec.name}
+Suggested section order: ${input.templateSpec.sectionOrder.join(" → ")}
+Notes: ${input.templateSpec.formattingNotes}
+
+${input.templateSpec.htmlStyleBrief}`;
+
+  const userText = `User data (source of truth — do not invent beyond this):
+${JSON.stringify(input.userData, null, 2)}
+
+Return a complete HTML document only.`;
+
+  const message = await client.messages.create({
+    model: "claude-sonnet-5",
+    max_tokens: 8192,
+    system,
+    messages: [{ role: "user", content: userText }],
+  });
+
+  const block = message.content.find((b) => b.type === "text");
+  if (!block || block.type !== "text") {
+    throw new Error("Claude returned no resume HTML.");
+  }
+  return stripFences(block.text).trim();
+}
+
+/** @deprecated JSON resume path kept for rollback; prefer generateResumeHtmlWithClaude. */
 const RESUME_SYSTEM = `You are formatting a resume from structured user-provided data. Your job is to
 improve phrasing and structure — NOT invent facts.
 
@@ -211,6 +275,7 @@ Rules (strict):
     "school": string,
     "degreeLine": string,
     "location": string | null,
+    "state": string | null,
     "date": string | null,
     "details": string[]
   },
@@ -219,6 +284,7 @@ Rules (strict):
       "title": string,
       "company": string,
       "location": string,
+      "state": string,
       "endDate": string,
       "bullets": string[]
     }
@@ -229,7 +295,9 @@ Rules (strict):
   "achievements": string[],
   "additional": string[]
 }
-Use empty arrays when a list has no grounded items. education and experience are required.`;
+Use empty arrays when a list has no grounded items. education and experience are required.
+Copy education_location → education.location and education_state → education.state from user data (do not invent).
+- Copy each experience entry's title, company, location, and state from user data (do not invent or drop company).`;
 
 export async function generateResumeWithClaude(input: {
   userData: unknown;
