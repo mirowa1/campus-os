@@ -8,7 +8,6 @@ const nextConfig = {
       "puppeteer-core",
       "puppeteer",
       "html-to-docx",
-      "sanitize-html",
     ],
   },
 };
