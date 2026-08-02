@@ -7,6 +7,7 @@ import { tmpdir } from "os";
 import { join } from "path";
 import {
   assertValidResumeHtml,
+  sanitizeResumeCss,
   sanitizeResumeHtml,
   wrapResumeDocument,
 } from "../src/lib/resume-html";
@@ -27,6 +28,11 @@ h1 { text-align: center; font-size: 22pt; margin: 0 0 6px; }
 .contact { text-align: center; font-size: 10pt; }
 h2 { font-size: 11pt; text-transform: uppercase; border-bottom: 1px solid #222; margin: 14px 0 6px; }
 .company { font-style: italic; }
+/* look-alike malicious CSS — must be stripped */
+@import url("https://evil.example/exfil.css");
+@import "https://evil.example/other.css";
+body { background: url("https://evil.example/track.png"); }
+.leak { background-image: url(//evil.example/pixel.gif); }
 </style>
 </head>
 <body>
@@ -50,10 +56,28 @@ h2 { font-size: 11pt; text-transform: uppercase; border-bottom: 1px solid #222; 
 </html>`;
 
 async function main() {
+  const cssHardened = sanitizeResumeCss(
+    `@page { size: letter; }
+@import url("https://evil.example/x.css");
+body { background: url("https://evil.example/t.png"); color: #111; }`
+  );
+  assert(!/@import/i.test(cssHardened), "CSS @import must be stripped");
+  assert(
+    !/https?:\/\/evil\.example/i.test(cssHardened),
+    "external CSS urls must be removed"
+  );
+  assert(/@page/.test(cssHardened), "@page print CSS must survive");
+
   const cleaned = sanitizeResumeHtml(SAMPLE);
   assert(!/<script/i.test(cleaned), "script tags must be stripped");
   assert(cleaned.includes("EDITED_NAME_SMOKE_XYZ"), "name preserved");
   assert(cleaned.includes("Houston Energy Partners"), "company preserved");
+  assert(/@page/.test(cleaned), "@page must survive HTML sanitize");
+  assert(!/@import/i.test(cleaned), "HTML sanitize must strip @import");
+  assert(
+    !/evil\.example/i.test(cleaned),
+    "HTML sanitize must strip evil.example CSS urls"
+  );
 
   const doc = wrapResumeDocument(assertValidResumeHtml(cleaned));
   assert(/<html/i.test(doc), "full document wrapper");

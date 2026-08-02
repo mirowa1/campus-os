@@ -8,7 +8,7 @@ const nextConfig = {
       "puppeteer-core",
       "puppeteer",
       "html-to-docx",
-      "isomorphic-dompurify",
+      "sanitize-html",
     ],
   },
 };
