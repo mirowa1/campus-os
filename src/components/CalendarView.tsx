@@ -13,7 +13,7 @@ import {
   startOfMonth,
   startOfWeek,
 } from "date-fns";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -98,6 +98,42 @@ function earliestAssessmentOutsideVisible(
   return { date: d, label: format(d, "MMM yyyy") };
 }
 
+/** Prefer earliest on/after today; else earliest overall. */
+function nearestDate(dates: Date[]): Date | null {
+  if (dates.length === 0) return null;
+  const today = startOfDay(new Date());
+  const sorted = [...dates].sort((a, b) => a.getTime() - b.getTime());
+  return sorted.find((d) => d.getTime() >= today.getTime()) ?? sorted[0];
+}
+
+type NewDatesNotice = {
+  monthLabel: string;
+  jumpDate: Date;
+  extraMonthCount: number;
+};
+
+function noticeForNewOutOfViewDates(
+  newAssessments: AssessmentCalItem[],
+  visibleStart: Date,
+  visibleEnd: Date
+): NewDatesNotice | null {
+  const outOfViewDates: Date[] = [];
+  for (const a of newAssessments) {
+    if (!a.date) continue;
+    const d = startOfDay(parseISO(a.date.slice(0, 10)));
+    if (Number.isNaN(d.getTime())) continue;
+    if (d < visibleStart || d > visibleEnd) outOfViewDates.push(d);
+  }
+  const jumpDate = nearestDate(outOfViewDates);
+  if (!jumpDate) return null;
+
+  const months = new Set(outOfViewDates.map((d) => format(d, "yyyy-MM")));
+  const monthLabel = format(jumpDate, "MMMM yyyy");
+  const extraMonthCount = Math.max(0, months.size - 1);
+
+  return { monthLabel, jumpDate, extraMonthCount };
+}
+
 export function CalendarView({
   assessments,
   personalEvents,
@@ -116,29 +152,50 @@ export function CalendarView({
   const [form, setForm] = useState<FormState | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [newDatesNotice, setNewDatesNotice] = useState<NewDatesNotice | null>(
+    null
+  );
+  /** null = first effect run (mount); then tracks prior assessment ids. */
+  const prevAssessmentIdsRef = useRef<Set<string> | null>(null);
 
   // Soft sync when SSR props change (e.g. after syllabus parse + navigate/refresh).
   useEffect(() => {
     setItems([...assessments, ...personalEvents]);
   }, [assessments, personalEvents]);
 
-  // If props gain dated items and current month still has none, jump once toward them.
+  // First-ever syllabus data may jump once; subsequent uploads never auto-jump —
+  // show a clickable notice when new dates land outside the current viewport.
   useEffect(() => {
-    const next = initialCursorFromItems(assessments, personalEvents);
+    const nextIds = new Set(assessments.map((a) => a.id));
+    const prev = prevAssessmentIdsRef.current;
+    prevAssessmentIdsRef.current = nextIds;
+
+    // First mount: initializer already seeded cursor — do not jump.
+    if (prev === null) return;
+
+    const added = assessments.filter((a) => !prev.has(a.id) && a.date);
+    if (added.length === 0) return;
+
+    // True first syllabus data while mounted on an empty calendar.
+    if (prev.size === 0) {
+      setCursor(initialCursorFromItems(assessments, personalEvents));
+      setNewDatesNotice(null);
+      return;
+    }
+
+    // Subsequent uploads: preserve viewport; notify if new dates are out of view.
     const visibleStart =
       view === "week" ? startOfWeek(cursor) : startOfMonth(cursor);
     const visibleEnd =
       view === "week" ? endOfWeek(cursor) : endOfMonth(cursor);
-    const hasInView = [...assessments, ...personalEvents].some((e) => {
-      if (!e.date) return false;
-      const d = parseISO(e.date.slice(0, 10));
-      return d >= visibleStart && d <= visibleEnd;
-    });
-    if (!hasInView && (assessments.length > 0 || personalEvents.length > 0)) {
-      setCursor(next);
-    }
-    // Only react to assessment/personal prop identity changes, not every cursor move.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: jump when syllabus data arrives
+    const notice = noticeForNewOutOfViewDates(
+      added,
+      visibleStart,
+      visibleEnd
+    );
+    if (notice) setNewDatesNotice(notice);
+    // Intentionally omit cursor/view from deps — use values at prop-change time only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve user viewport on syllabus refresh
   }, [assessments, personalEvents]);
 
   const days = useMemo(() => {
@@ -392,7 +449,43 @@ export function CalendarView({
         </div>
       </div>
 
-      {jumpTarget && (
+      {newDatesNotice && (
+        <div
+          className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-4 py-3 text-sm"
+          role="status"
+        >
+          <p className="text-[var(--ink)]">
+            New dates added to {newDatesNotice.monthLabel}
+            {newDatesNotice.extraMonthCount > 0
+              ? ` (+${newDatesNotice.extraMonthCount} more month${
+                  newDatesNotice.extraMonthCount === 1 ? "" : "s"
+                })`
+              : ""}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn btn-ghost text-xs"
+              onClick={() => {
+                setCursor(newDatesNotice.jumpDate);
+                setNewDatesNotice(null);
+              }}
+            >
+              Show {format(newDatesNotice.jumpDate, "MMM yyyy")}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost text-xs"
+              onClick={() => setNewDatesNotice(null)}
+              aria-label="Dismiss"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {jumpTarget && !newDatesNotice && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--line)] bg-[var(--bg-soft)] px-4 py-3 text-sm">
           <p className="text-[var(--muted)]">
             Syllabus dates are in {jumpTarget.label} — nothing in this{" "}

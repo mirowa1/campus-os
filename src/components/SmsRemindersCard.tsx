@@ -226,6 +226,11 @@ export function SmsRemindersCard({ initial }: Props) {
         </label>
       )}
 
+      <p className="text-xs text-[var(--muted)]">
+        Reminder delivery is rolling out soon — verification works today, and
+        you&apos;ll start receiving due-date texts once it&apos;s fully live.
+      </p>
+
       {error && (
         <p className="rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-3 py-2 text-sm text-[var(--danger)]">
           {error}
