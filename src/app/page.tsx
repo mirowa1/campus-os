@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { SiteFooter } from "@/components/SiteFooter";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function HomePage() {
@@ -13,10 +14,10 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="landing-hero">
+    <main className="landing-hero flex min-h-screen flex-col">
       <div className="landing-hero-blob" aria-hidden />
 
-      <div className="landing-hero-inner">
+      <div className="landing-hero-inner flex flex-1 flex-col">
         <header className="flex items-center justify-between gap-3">
           <p className="font-display shrink-0 text-xl tracking-tight sm:text-2xl">
             CoreMax
@@ -58,6 +59,8 @@ export default async function HomePage() {
             </div>
           </div>
         </section>
+
+        <SiteFooter />
       </div>
     </main>
   );
