@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { ProfileForm } from "@/components/ProfileForm";
+import {
+  SmsRemindersCard,
+  type NotificationPrefs,
+} from "@/components/SmsRemindersCard";
 import { SiteFooter } from "@/components/SiteFooter";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
@@ -12,11 +16,14 @@ export default async function ProfilePage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
+  const [{ data: profile }, { data: notifPrefs }] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
+    supabase
+      .from("notification_preferences")
+      .select("sms_enabled, phone_number, phone_verified")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  ]);
 
   const row: Profile = profile
     ? (profile as Profile)
@@ -38,6 +45,14 @@ export default async function ProfilePage() {
     });
   }
 
+  const smsInitial: NotificationPrefs | null = notifPrefs
+    ? {
+        sms_enabled: Boolean(notifPrefs.sms_enabled),
+        phone_number: notifPrefs.phone_number ?? null,
+        phone_verified: Boolean(notifPrefs.phone_verified),
+      }
+    : null;
+
   return (
     <div className="flex min-h-screen flex-col">
       <AppNav email={user.email} />
@@ -46,8 +61,9 @@ export default async function ProfilePage() {
         <p className="mt-2 text-[var(--muted)]">
           Your account details — private to you.
         </p>
-        <div className="mt-8">
+        <div className="mt-8 space-y-8">
           <ProfileForm initial={row} email={user.email ?? row.email} />
+          <SmsRemindersCard initial={smsInitial} />
         </div>
       </main>
       <SiteFooter />
