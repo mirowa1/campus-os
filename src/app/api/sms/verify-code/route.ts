@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "SMS verification is not configured. Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_VERIFY_SERVICE_SID.",
+            "SMS verification is not configured. Add TWILIO_API_KEY, TWILIO_CLIENT_SECRET, TWILIO_ACCOUNT_SID, and TWILIO_VERIFY_SERVICE_SID.",
         },
         { status: 503 }
       );

@@ -11,12 +11,13 @@ export function normalizePhoneE164(input: string): string | null {
 
 export function twilioConfig() {
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const apiKey = process.env.TWILIO_API_KEY;
+  const apiSecret = process.env.TWILIO_CLIENT_SECRET;
   const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
-  if (!accountSid || !authToken || !verifyServiceSid) {
+  if (!accountSid || !apiKey || !apiSecret || !verifyServiceSid) {
     return null;
   }
-  return { accountSid, authToken, verifyServiceSid };
+  return { accountSid, apiKey, apiSecret, verifyServiceSid };
 }
 
 async function twilioFetch(
@@ -27,9 +28,8 @@ async function twilioFetch(
   if (!cfg) {
     throw new Error("Twilio Verify is not configured");
   }
-  const auth = Buffer.from(`${cfg.accountSid}:${cfg.authToken}`).toString(
-    "base64"
-  );
+  // Equivalent to: twilio(apiKey, apiSecret, { accountSid })
+  const auth = Buffer.from(`${cfg.apiKey}:${cfg.apiSecret}`).toString("base64");
   const res = await fetch(`https://verify.twilio.com/v2${path}`, {
     method: "POST",
     headers: {
