@@ -378,17 +378,25 @@ export function QuizFlashcardsPanel({
     }
 
     const onCheck = async () => {
-      if (view.kind !== "quizPlay" || view.selected == null) return;
-      const correct = view.selected === q.correctIndex;
-      const nextAnswers = [
-        ...view.answers,
-        {
-          questionIndex: view.index,
-          selectedIndex: view.selected,
-          correct,
-        },
-      ];
-      setView({ ...view, revealed: true, answers: nextAnswers });
+      setView((prev) => {
+        if (prev.kind !== "quizPlay" || prev.selected == null) return prev;
+        const current = (findSet(prev.setId)?.content ?? []) as QuizQuestion[];
+        const question = current[prev.index];
+        if (!question) return prev;
+        const correct = prev.selected === question.correctIndex;
+        return {
+          ...prev,
+          revealed: true,
+          answers: [
+            ...prev.answers,
+            {
+              questionIndex: prev.index,
+              selectedIndex: prev.selected,
+              correct,
+            },
+          ],
+        };
+      });
     };
 
     const onNext = async () => {
@@ -411,12 +419,16 @@ export function QuizFlashcardsPanel({
         });
         return;
       }
-      setView({
-        ...view,
-        index: nextIndex,
-        selected: null,
-        revealed: false,
-      });
+      setView((prev) =>
+        prev.kind === "quizPlay"
+          ? {
+              ...prev,
+              index: nextIndex,
+              selected: null,
+              revealed: false,
+            }
+          : prev
+      );
     };
 
     return (
@@ -428,13 +440,23 @@ export function QuizFlashcardsPanel({
         <h2 className="font-heading mt-3 text-xl">{q.question}</h2>
         <ul className="mt-4 space-y-2">
           {q.options.map((opt, i) => {
-            let cls =
-              "w-full rounded-lg border border-[var(--line)] px-3 py-2 text-left text-sm transition";
+            // Mutually exclusive border/bg classes — stacking border-[var(--line)]
+            // with border-[var(--accent)] fails under Tailwind (CSS source order wins).
+            const base =
+              "w-full rounded-lg border px-3 py-2 text-left text-sm transition";
+            let cls = `${base} border-[var(--line)]`;
             if (view.revealed) {
-              if (i === q.correctIndex) cls += " border-[var(--accent)] bg-[var(--accent)]/15";
-              else if (i === view.selected) cls += " border-[var(--danger)]/50";
+              if (i === q.correctIndex) {
+                cls = `${base} border-[var(--accent)] bg-[var(--accent)]/15`;
+              } else if (i === view.selected) {
+                cls = `${base} border-[var(--danger)]/50 bg-[var(--danger)]/10`;
+              } else {
+                cls = `${base} border-[var(--line)] opacity-60`;
+              }
             } else if (view.selected === i) {
-              cls += " border-[var(--accent)]";
+              cls = `${base} border-[var(--accent)] bg-[var(--accent)]/20 ring-1 ring-[var(--accent)]`;
+            } else {
+              cls = `${base} border-[var(--line)] hover:border-[var(--muted)]`;
             }
             return (
               <li key={i}>
@@ -442,7 +464,14 @@ export function QuizFlashcardsPanel({
                   type="button"
                   className={cls}
                   disabled={view.revealed}
-                  onClick={() => setView({ ...view, selected: i })}
+                  aria-pressed={view.selected === i}
+                  onClick={() =>
+                    setView((prev) =>
+                      prev.kind === "quizPlay" && !prev.revealed
+                        ? { ...prev, selected: i }
+                        : prev
+                    )
+                  }
                 >
                   {opt}
                 </button>
