@@ -1,0 +1,15 @@
+CIS 8041 — Applied Databases
+Fall 2026
+Instructor: Dr. Example
+Georgia State University
+
+Grade Breakdown:
+- Quiz 1: 10% — Due September 3, 2026
+- Homework 1: 10% — Due September 8, 2026
+- Quiz 2: 15% — Due September 15, 2026
+- Project Proposal: 15% — Due September 18, 2026
+- Midterm Exam: 30% — Due September 24, 2026
+- Lab Report: 20% — Due September 29, 2026
+
+Course Description:
+Hands-on SQL, schema design, and query performance for graduate students.

@@ -1,6 +1,10 @@
-# CampusOS
+# Coursework by CoreMax
 
-**The all-in-one student operating system.** Upload your syllabus, and CampusOS builds your entire semester — every assignment, every exam, every deadline — then tells you exactly what grade you need.
+**Upload your syllabus. Know exactly where you stand.**
+
+Product UI brand: **Coursework by CoreMax** (CoreMax primary mark + Coursework product).  
+Production: [https://www.coremaxsystems.com](https://www.coremaxsystems.com)  
+Repo: [mirowa1/campus-os](https://github.com/mirowa1/campus-os)
 
 > v1 Focus: Be the app students open every single day.
 
@@ -8,9 +12,7 @@
 
 Auth → syllabus upload → Claude parse → “Here’s your semester” → calendar + live grade tracking with target-grade / at-risk status.
 
-**Phase 2:** per-class Notes, course material uploads, upload-gated study guide generator (append-to-notes).
-
-Deferred for later: budget, push/email notifications, AI assignment assist, PDF class summaries.
+**Also in repo:** Notes, course materials, study guides, quizzes/flashcards, resume builder, optional SMS (Twilio Verify).
 
 ## Tech
 
@@ -19,47 +21,40 @@ Deferred for later: budget, push/email notifications, AI assignment assist, PDF 
 | Frontend | Next.js 14 (App Router) + Tailwind CSS |
 | Backend | Next.js API routes / Server Actions |
 | Database & Auth | Supabase (Postgres + email auth) |
-| AI Parsing | Claude API (syllabus → structured JSON) |
-| Hosting | Vercel |
+| AI | Anthropic Claude |
+| SMS | Twilio Verify (API Key auth) |
+| Hosting | Vercel (`coremax1/campus-os`) |
 
 ## Getting started
 
 ```bash
-# 1. Install
 npm install
-
-# 2. Environment
 cp .env.example .env.local
-# Fill in: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, ANTHROPIC_API_KEY
-
-# 3. Supabase
-# - Create a project at https://supabase.com
-# - Run the SQL in supabase/migrations/001_initial_schema.sql in the SQL Editor
-# - Enable Email auth (Authentication → Providers)
-# - Create a public Storage bucket named `syllabi` (or run the storage section of the migration)
-
-# 4. Dev server
+# Fill required keys — see TRANSFER.md
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+**Moving to a new laptop?** Follow **[TRANSFER.md](TRANSFER.md)** (paste-ready Cursor agent prompt + full checklist).
+
+## Demo screenshots
+
+Marketing captures live in [`demo-assets/`](demo-assets/). Recapture script: `scripts/capture-demo-screenshots.mjs` (Playwright + system Chrome).
 
 ## Project structure
 
 ```
 campus-os/
 ├── src/
-│   ├── app/
-│   │   ├── (auth)/          # Login / signup
-│   │   ├── onboarding/      # Syllabus upload + semester review
-│   │   ├── dashboard/       # Today's deadlines
-│   │   ├── classes/         # Class list + grade tracker
-│   │   ├── calendar/        # Unified calendar
-│   │   └── api/
-│   │       └── parse-syllabus/
+│   ├── app/                 # Auth, onboarding, dashboard, classes, calendar, resume, API
 │   ├── components/
-│   └── lib/                 # Supabase, grades math, Claude, file extract
-└── supabase/migrations/
+│   └── lib/                 # Supabase, Claude, grades, SMS, resume PDF
+├── supabase/migrations/
+├── fixtures/                # Sample syllabi / study materials
+├── demo-assets/             # Launch marketing screenshots
+├── scripts/                 # E2E / capture helpers
+└── TRANSFER.md              # New-laptop setup prompt
 ```
 
 ## License

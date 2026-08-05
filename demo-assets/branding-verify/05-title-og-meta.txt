@@ -1,0 +1,12 @@
+Live HTML from https://www.coremaxsystems.com/ (verified 2026-08-05)
+
+<title>Coursework by CoreMax</title>
+<meta name="description" content="Coursework by CoreMax — upload your syllabus and get deadlines, grades, and what you need to stay on track.">
+<meta property="og:title" content="Coursework by CoreMax">
+<meta property="og:description" content="Upload your syllabus and get deadlines, grades, and what you need to stay on track.">
+<meta property="og:url" content="https://www.coremaxsystems.com">
+<meta property="og:site_name" content="Coursework by CoreMax">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Coursework by CoreMax">
+<meta name="twitter:description" content="Upload your syllabus and get deadlines, grades, and what you need to stay on track.">
