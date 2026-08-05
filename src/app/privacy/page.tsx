@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BrandMark } from "@/components/BrandMark";
 import { SiteFooter } from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | CoreMax",
+  title: "Privacy Policy | Coursework by CoreMax",
   description:
-    "CoreMax privacy policy, including SMS/mobile messaging disclosures for A2P 10DLC compliance.",
+    "Coursework by CoreMax privacy policy, including SMS/mobile messaging disclosures for A2P 10DLC compliance.",
 };
 
 export default function PrivacyPage() {
@@ -13,9 +14,7 @@ export default function PrivacyPage() {
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-[var(--line)]">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <Link href="/" className="font-display text-xl">
-            CoreMax
-          </Link>
+          <BrandMark href="/" size="sm" />
           <Link href="/login" className="btn btn-ghost text-xs">
             Log in
           </Link>

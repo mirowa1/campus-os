@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { BrandMark } from "@/components/BrandMark";
 import { createClient } from "@/lib/supabase/client";
 
 const NAV = [
@@ -27,9 +28,7 @@ export function AppNav({ email }: { email?: string | null }) {
     <header className="border-b border-[var(--line)]">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
         <div className="flex items-center gap-8">
-          <Link href="/dashboard" className="font-display text-xl">
-            CoreMax
-          </Link>
+          <BrandMark href="/dashboard" size="sm" />
           <nav className="hidden gap-1 sm:flex">
             {NAV.map((item) => {
               const active = pathname.startsWith(item.href);

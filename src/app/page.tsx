@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { BrandMark } from "@/components/BrandMark";
 import { SiteFooter } from "@/components/SiteFooter";
 import { createClient } from "@/lib/supabase/server";
 
@@ -19,9 +20,7 @@ export default async function HomePage() {
 
       <div className="landing-hero-inner flex flex-1 flex-col">
         <header className="flex items-center justify-between gap-3">
-          <p className="font-display shrink-0 text-xl tracking-tight sm:text-2xl">
-            CoreMax
-          </p>
+          <BrandMark href="/" size="md" />
           <div className="flex shrink-0 gap-2 sm:gap-3">
             <Link
               href="/login"
@@ -40,10 +39,10 @@ export default async function HomePage() {
 
         <section className="flex flex-1 flex-col justify-center py-8 md:py-16">
           <div className="max-w-xl md:max-w-2xl">
-            <p className="text-xs font-medium uppercase tracking-[0.35em] text-[var(--muted)] md:text-sm">
-              WE ARE
+            <p className="font-heading text-2xl font-semibold tracking-tight text-white sm:text-3xl md:text-4xl">
+              Coursework by CoreMax
             </p>
-            <h1 className="landing-hero-wordmark font-heading mt-3 text-[clamp(3.25rem,17vw,8.5rem)] font-bold leading-[0.92] tracking-tight text-white">
+            <h1 className="landing-hero-wordmark font-heading mt-4 text-[clamp(3.25rem,17vw,8.5rem)] font-bold leading-[0.92] tracking-tight text-white md:mt-5">
               COREMAX
             </h1>
             <p className="mt-6 max-w-md text-base text-[var(--muted)] md:mt-8 md:text-lg">

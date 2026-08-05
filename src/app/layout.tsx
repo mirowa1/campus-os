@@ -20,9 +20,24 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "CoreMax",
+  metadataBase: new URL("https://www.coremaxsystems.com"),
+  title: "Coursework by CoreMax",
   description:
-    "Upload your syllabus and CoreMax builds your semester — deadlines, grades, and what you need to stay on track.",
+    "Coursework by CoreMax — upload your syllabus and get deadlines, grades, and what you need to stay on track.",
+  openGraph: {
+    title: "Coursework by CoreMax",
+    description:
+      "Upload your syllabus and get deadlines, grades, and what you need to stay on track.",
+    url: "https://www.coremaxsystems.com",
+    siteName: "Coursework by CoreMax",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Coursework by CoreMax",
+    description:
+      "Upload your syllabus and get deadlines, grades, and what you need to stay on track.",
+  },
 };
 
 export default function RootLayout({

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { BrandMark } from "@/components/BrandMark";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -38,9 +39,9 @@ export default function LoginPage() {
     <main className="hero-blob-shell relative flex min-h-screen w-full flex-col justify-center px-6 py-12">
       <div className="hero-blob" aria-hidden />
       <div className="relative z-10 mx-auto w-full max-w-md">
-        <Link href="/" className="font-display mb-10 inline-block text-2xl">
-          CoreMax
-        </Link>
+        <div className="mb-10">
+          <BrandMark href="/" size="md" />
+        </div>
         <h1 className="font-heading text-4xl">Welcome back</h1>
         <p className="mt-2 text-[var(--muted)]">Log in to your semester.</p>
 

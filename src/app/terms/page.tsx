@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BrandMark } from "@/components/BrandMark";
 import { SiteFooter } from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | CoreMax",
-  description: "CoreMax terms of service for use of the student OS platform.",
+  title: "Terms of Service | Coursework by CoreMax",
+  description:
+    "Coursework by CoreMax terms of service for use of the student OS platform.",
 };
 
 export default function TermsPage() {
@@ -12,9 +14,7 @@ export default function TermsPage() {
     <div className="flex min-h-screen flex-col">
       <header className="border-b border-[var(--line)]">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <Link href="/" className="font-display text-xl">
-            CoreMax
-          </Link>
+          <BrandMark href="/" size="sm" />
           <Link href="/login" className="btn btn-ghost text-xs">
             Log in
           </Link>
