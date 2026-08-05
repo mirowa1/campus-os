@@ -60,9 +60,13 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isAuthRoute =
     path.startsWith("/login") || path.startsWith("/signup");
+  // Password reset routes stay public but are NOT auth routes — a recovery
+  // session must not redirect to /dashboard before the user sets a password.
   const isPublic =
     path === "/" ||
     isAuthRoute ||
+    path.startsWith("/forgot-password") ||
+    path.startsWith("/reset-password") ||
     path.startsWith("/privacy") ||
     path.startsWith("/terms");
 
