@@ -105,11 +105,40 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const meetingRows = (parsed.meetings ?? []).map((m) => ({
+      class_id: classRow.id,
+      user_id: user.id,
+      day_of_week: m.day_of_week,
+      start_time: m.start_time,
+      end_time: m.end_time,
+      location: m.location,
+      term_start_date: m.term_start_date,
+      term_end_date: m.term_end_date,
+    }));
+
+    if (meetingRows.length > 0) {
+      const { error: meetingError } = await supabase
+        .from("class_meetings")
+        .insert(meetingRows);
+      if (meetingError) {
+        return NextResponse.json(
+          { error: meetingError.message },
+          { status: 500 }
+        );
+      }
+    }
+
     const { data: assessments } = await supabase
       .from("assessments")
       .select("*")
       .eq("class_id", classRow.id)
       .order("due_date", { ascending: true, nullsFirst: false });
+
+    const { data: meetings } = await supabase
+      .from("class_meetings")
+      .select("*")
+      .eq("class_id", classRow.id)
+      .order("day_of_week", { ascending: true });
 
     // Soft-invalidate calendar so new due dates appear without a hard refresh.
     revalidatePath("/calendar");
@@ -117,6 +146,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       class: classRow,
       assessments: assessments ?? [],
+      meetings: meetings ?? [],
       storagePath: uploadError ? null : path,
     });
   } catch (err) {

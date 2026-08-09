@@ -45,11 +45,28 @@ export type PersonalCalItem = {
   userId: string;
 };
 
-export type UnifiedCalItem = AssessmentCalItem | PersonalCalItem;
+/** Recurring class meeting time (from syllabus). */
+export type MeetingCalItem = {
+  kind: "meeting";
+  id: string;
+  title: string;
+  date: string;
+  classId: string;
+  classLabel: string;
+  startTime: string;
+  endTime: string;
+  location: string | null;
+};
+
+export type UnifiedCalItem =
+  | AssessmentCalItem
+  | PersonalCalItem
+  | MeetingCalItem;
 
 type Props = {
   assessments: AssessmentCalItem[];
   personalEvents: PersonalCalItem[];
+  meetingEvents?: MeetingCalItem[];
   classes: ClassRow[];
   initialView?: "week" | "month";
 };
@@ -69,10 +86,11 @@ function emptyForm(date: string): FormState {
 /** Prefer earliest dated item on/after today; else earliest overall; else now. */
 function initialCursorFromItems(
   assessments: AssessmentCalItem[],
-  personalEvents: PersonalCalItem[]
+  personalEvents: PersonalCalItem[],
+  meetingEvents: MeetingCalItem[] = []
 ): Date {
   const today = startOfDay(new Date());
-  const dates = [...assessments, ...personalEvents]
+  const dates = [...assessments, ...personalEvents, ...meetingEvents]
     .map((e) => e.date?.slice(0, 10))
     .filter((d): d is string => Boolean(d))
     .map((d) => startOfDay(parseISO(d)))
@@ -137,17 +155,19 @@ function noticeForNewOutOfViewDates(
 export function CalendarView({
   assessments,
   personalEvents,
+  meetingEvents = [],
   classes,
   initialView = "month",
 }: Props) {
   const router = useRouter();
   const [view, setView] = useState<"week" | "month">(initialView);
   const [cursor, setCursor] = useState(() =>
-    initialCursorFromItems(assessments, personalEvents)
+    initialCursorFromItems(assessments, personalEvents, meetingEvents)
   );
   const [items, setItems] = useState<UnifiedCalItem[]>(() => [
     ...assessments,
     ...personalEvents,
+    ...meetingEvents,
   ]);
   const [form, setForm] = useState<FormState | null>(null);
   const [saving, setSaving] = useState(false);
@@ -160,8 +180,8 @@ export function CalendarView({
 
   // Soft sync when SSR props change (e.g. after syllabus parse + navigate/refresh).
   useEffect(() => {
-    setItems([...assessments, ...personalEvents]);
-  }, [assessments, personalEvents]);
+    setItems([...assessments, ...personalEvents, ...meetingEvents]);
+  }, [assessments, personalEvents, meetingEvents]);
 
   // First-ever syllabus data may jump once; subsequent uploads never auto-jump —
   // show a clickable notice when new dates land outside the current viewport.
@@ -178,7 +198,7 @@ export function CalendarView({
 
     // True first syllabus data while mounted on an empty calendar.
     if (prev.size === 0) {
-      setCursor(initialCursorFromItems(assessments, personalEvents));
+      setCursor(initialCursorFromItems(assessments, personalEvents, meetingEvents));
       setNewDatesNotice(null);
       return;
     }
@@ -634,6 +654,20 @@ export function CalendarView({
                         <span className="font-medium">{e.title}</span>
                         <span className="mt-0.5 block truncate text-[9px] text-[var(--muted)]">
                           {e.classLabel}
+                        </span>
+                      </Link>
+                    ) : e.kind === "meeting" ? (
+                      <Link
+                        href={`/classes/${e.classId}`}
+                        onClick={(ev) => ev.stopPropagation()}
+                        className="block truncate rounded border border-dashed border-[var(--accent)]/50 bg-transparent px-1 py-0.5 text-[10px] leading-tight hover:bg-[var(--accent)]/10"
+                        title={`${e.classLabel} · ${e.title}${e.location ? ` · ${e.location}` : ""}`}
+                      >
+                        <span className="font-medium text-[var(--accent)]">
+                          {e.classLabel}
+                        </span>
+                        <span className="mt-0.5 block truncate text-[9px] text-[var(--muted)]">
+                          {e.title}
                         </span>
                       </Link>
                     ) : (

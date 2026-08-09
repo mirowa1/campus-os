@@ -11,6 +11,7 @@ const NAV = [
   { href: "/classes", label: "Classes" },
   { href: "/grades", label: "Grades" },
   { href: "/resume", label: "Resume" },
+  { href: "/settings", label: "Settings" },
 ];
 
 export function AppNav({ email }: { email?: string | null }) {

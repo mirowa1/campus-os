@@ -14,6 +14,16 @@ Return ONLY valid JSON matching this schema (no markdown fences):
       "due_date": "YYYY-MM-DD" | null,
       "weight_percent": number
     }
+  ],
+  "meetings": [
+    {
+      "day_of_week": number,
+      "start_time": "HH:MM",
+      "end_time": "HH:MM",
+      "location": string | null,
+      "term_start_date": "YYYY-MM-DD" | null,
+      "term_end_date": "YYYY-MM-DD" | null
+    }
   ]
 }
 Rules:
@@ -21,7 +31,14 @@ Rules:
 - weight_percent is the portion of the final grade (e.g. 20 for 20%). Use 0 if unknown.
 - due_date: infer year from the term/syllabus when possible; null if unknown.
 - type: use exam for midterms/finals, quiz for quizzes/tests, assignment for homework/projects, other otherwise.
-- Prefer the official course name and code (e.g. CIS 8040).`;
+- Prefer the official course name and code (e.g. CIS 8040).
+- meetings: extract recurring class meeting times ONLY if explicitly stated (e.g. "Lecture: MWF 10:00-10:50am, Room 204" or "Tuesdays and Thursdays 2:00-3:15pm"). Do not invent meetings.
+- day_of_week: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday. Emit one meetings[] row per day (MWF → three rows sharing the same times/location).
+- start_time / end_time: 24-hour HH:MM. Convert am/pm if needed.
+- location: room/building if stated, else null.
+- term_start_date / term_end_date: only if the syllabus states the term/class date range; else null.
+- If no meeting times are stated, return "meetings": [].
+- A class may have multiple blocks (lecture + lab) — include all explicit blocks.`;
 
 function stripFences(text: string): string {
   const trimmed = text.trim();
@@ -99,7 +116,37 @@ export async function parseSyllabusWithClaude(input: {
     weight_percent: Number(a.weight_percent) || 0,
   }));
 
+  const rawMeetings = Array.isArray(parsed.meetings) ? parsed.meetings : [];
+  parsed.meetings = rawMeetings
+    .map((m) => {
+      const day = Number(m.day_of_week);
+      const start = normalizeTime(m.start_time);
+      const end = normalizeTime(m.end_time);
+      if (!Number.isInteger(day) || day < 0 || day > 6 || !start || !end) {
+        return null;
+      }
+      return {
+        day_of_week: day,
+        start_time: start,
+        end_time: end,
+        location: m.location?.trim() || null,
+        term_start_date: m.term_start_date || null,
+        term_end_date: m.term_end_date || null,
+      };
+    })
+    .filter((m): m is NonNullable<typeof m> => m != null);
+
   return parsed;
+}
+
+function normalizeTime(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const m = value.trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h < 0 || h > 23 || min < 0 || min > 59) return null;
+  return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}:00`;
 }
 
 const STUDY_GUIDE_SYSTEM = `You are a study/homework helper for university students.

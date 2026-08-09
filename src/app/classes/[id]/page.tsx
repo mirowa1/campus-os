@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
+import { GoogleSyncButton } from "@/components/GoogleSyncButton";
 import { GradePanel } from "@/components/GradePanel";
 import { MaterialsPanel } from "@/components/MaterialsPanel";
 import { NotesPanel } from "@/components/NotesPanel";
@@ -44,6 +45,7 @@ export default async function ClassDetailPage({
     { data: materials },
     { data: guides },
     { data: quizSets },
+    { data: googleConnection },
   ] = await Promise.all([
     supabase
       .from("assessments")
@@ -71,6 +73,11 @@ export default async function ClassDetailPage({
       .select("*")
       .eq("class_id", params.id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("google_calendar_connections")
+      .select("user_id")
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ]);
 
   const cls = classRow as ClassRow;
@@ -131,6 +138,10 @@ export default async function ClassDetailPage({
         </div>
 
         <GradePanel classRow={cls} assessments={items} />
+        <GoogleSyncButton
+          classId={cls.id}
+          connected={!!googleConnection}
+        />
         <NotesPanel classId={cls.id} initialNotes={noteRows} />
         <MaterialsPanel classId={cls.id} initialMaterials={materialRows} />
         <StudyGuidePanel

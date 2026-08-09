@@ -1,20 +1,31 @@
+import {
+  addMonths,
+  endOfMonth,
+  endOfWeek,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+} from "date-fns";
 import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import {
   CalendarView,
   type AssessmentCalItem,
+  type MeetingCalItem,
   type PersonalCalItem,
 } from "@/components/CalendarView";
+import { expandMeetingsToCalItems } from "@/lib/class-meetings";
 import { createClient } from "@/lib/supabase/server";
 import type {
   AssessmentRow,
   CalendarEventRow,
+  ClassMeetingRow,
   ClassRow,
 } from "@/lib/types";
 
 /**
- * Calendar shows syllabus assessments (by due_date) plus personal reminders.
- * Assessments are created by syllabus parse — not by the class page (scores only).
+ * Calendar shows syllabus assessments (by due_date), recurring class meetings,
+ * plus personal reminders.
  */
 export default async function CalendarPage() {
   const supabase = createClient();
@@ -33,16 +44,20 @@ export default async function CalendarPage() {
   const ids = classList.map((c) => c.id);
   const byId = new Map(classList.map((c) => [c.id, c]));
 
-  const [{ data: assessments }, { data: personal }] = await Promise.all([
-    ids.length > 0
-      ? supabase.from("assessments").select("*").in("class_id", ids)
-      : Promise.resolve({ data: [] as AssessmentRow[] }),
-    supabase
-      .from("calendar_events")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("event_date", { ascending: true }),
-  ]);
+  const [{ data: assessments }, { data: personal }, { data: meetings }] =
+    await Promise.all([
+      ids.length > 0
+        ? supabase.from("assessments").select("*").in("class_id", ids)
+        : Promise.resolve({ data: [] as AssessmentRow[] }),
+      supabase
+        .from("calendar_events")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("event_date", { ascending: true }),
+      ids.length > 0
+        ? supabase.from("class_meetings").select("*").in("class_id", ids)
+        : Promise.resolve({ data: [] as ClassMeetingRow[] }),
+    ]);
 
   const assessmentItems: AssessmentCalItem[] = (
     (assessments ?? []) as AssessmentRow[]
@@ -76,18 +91,30 @@ export default async function CalendarPage() {
     };
   });
 
+  // Expand meetings across a wide window so month navigation still has chips.
+  const rangeStart = startOfWeek(startOfMonth(subMonths(new Date(), 2)));
+  const rangeEnd = endOfWeek(endOfMonth(addMonths(new Date(), 6)));
+  const meetingItems: MeetingCalItem[] = expandMeetingsToCalItems(
+    (meetings ?? []) as ClassMeetingRow[],
+    byId,
+    rangeStart,
+    rangeEnd
+  );
+
   return (
     <div>
       <AppNav email={user.email} />
       <main className="mx-auto max-w-6xl px-6 py-10">
         <h1 className="font-heading text-4xl">Calendar</h1>
         <p className="mt-2 text-[var(--muted)]">
-          Assignments from syllabi plus your personal reminders.
+          Assignments from syllabi, recurring class times, and personal
+          reminders.
         </p>
         <div className="mt-8">
           <CalendarView
             assessments={assessmentItems}
             personalEvents={personalItems}
+            meetingEvents={meetingItems}
             classes={classList}
           />
         </div>

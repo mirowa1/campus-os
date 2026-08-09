@@ -46,11 +46,35 @@ export interface ParsedAssessment {
   weight_percent: number;
 }
 
+/** Recurring class meeting block from syllabus (e.g. MWF 10:00–10:50). */
+export interface ParsedClassMeeting {
+  day_of_week: number; // 0=Sunday … 6=Saturday
+  start_time: string; // HH:MM or HH:MM:SS
+  end_time: string;
+  location: string | null;
+  term_start_date: string | null; // YYYY-MM-DD
+  term_end_date: string | null;
+}
+
 export interface ParsedSyllabus {
   name: string;
   code: string | null;
   term: string | null;
   assessments: ParsedAssessment[];
+  meetings: ParsedClassMeeting[];
+}
+
+export interface ClassMeetingRow {
+  id: string;
+  class_id: string;
+  user_id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  location: string | null;
+  term_start_date: string | null;
+  term_end_date: string | null;
+  created_at: string;
 }
 
 export interface ClassWithAssessments extends ClassRow {
