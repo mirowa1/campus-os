@@ -152,7 +152,13 @@ export default function TermsPage() {
           <section className="space-y-3">
             <h2 className="font-heading text-2xl">Contact</h2>
             <p>
-              Questions about these terms: <strong>[contact email]</strong>
+              Questions about these terms:{" "}
+              <a
+                href="mailto:maxwelllirowa1@gmail.com"
+                className="text-[var(--accent)] hover:underline"
+              >
+                maxwelllirowa1@gmail.com
+              </a>
             </p>
           </section>
         </div>

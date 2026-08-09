@@ -31,11 +31,10 @@ export default function PrivacyPage() {
           <section className="space-y-3">
             <h2 className="font-heading text-2xl">Overview</h2>
             <p>
-              CoreMax (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;)
-              provides a student operating system that helps you organize
-              courses, deadlines, grades, and study tools. This Privacy Policy
-              explains what information we collect, how we use it, and your
-              choices.
+              CoreMax provides a student operating system that helps you
+              organize courses, deadlines, grades, and study tools. This
+              Privacy Policy explains what information we collect, how we use
+              it, and your choices.
             </p>
           </section>
 
@@ -98,8 +97,7 @@ export default function PrivacyPage() {
             <p>
               We do not use your uploaded course materials or grades to train
               public AI models for unrelated third parties. AI features process
-              content you provide in order to generate outputs for your
-              account.
+              content you provide to generate outputs for your account.
             </p>
           </section>
 
@@ -127,13 +125,12 @@ export default function PrivacyPage() {
               <li>Message and data rates may apply.</li>
               <li>
                 You can opt out of SMS notifications at any time by disabling
-                them in your Profile settings, or by replying STOP to any
-                message.
+                them in Profile settings or by replying STOP to any message.
               </li>
             </ul>
             <p>
-              For help with SMS, reply HELP to any message or contact us using
-              the email below.
+              For help with SMS, reply HELP to any message or contact us at the
+              email below.
             </p>
           </section>
 
@@ -156,7 +153,7 @@ export default function PrivacyPage() {
             <h2 className="font-heading text-2xl">Sharing</h2>
             <p>
               We share data only with service providers that help us operate
-              CoreMax (for example hosting, database, AI processing, and SMS
+              CoreMax (for example, hosting, database, AI processing, and SMS
               delivery), under agreements that limit use to providing those
               services. We do not sell your personal information.
             </p>
@@ -165,7 +162,7 @@ export default function PrivacyPage() {
           <section className="space-y-3">
             <h2 className="font-heading text-2xl">Your choices</h2>
             <ul className="list-disc space-y-2 pl-6">
-              <li>Update profile details in your Profile settings.</li>
+              <li>Update profile details in Profile settings.</li>
               <li>
                 Disable SMS notifications in Profile settings or by replying
                 STOP.
@@ -181,7 +178,12 @@ export default function PrivacyPage() {
             <h2 className="font-heading text-2xl">Contact</h2>
             <p>
               For privacy questions, contact:{" "}
-              <strong>[contact email]</strong>
+              <a
+                href="mailto:maxwelllirowa1@gmail.com"
+                className="text-[var(--accent)] hover:underline"
+              >
+                maxwelllirowa1@gmail.com
+              </a>
             </p>
           </section>
         </div>
