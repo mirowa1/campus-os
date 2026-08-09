@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useState } from "react";
-import { BrandMark } from "@/components/BrandMark";
+import { Logo } from "@/components/Logo";
 import { createClient } from "@/lib/supabase/client";
 
 function LoginForm() {
@@ -111,7 +111,7 @@ export default function LoginPage() {
       <div className="hero-blob" aria-hidden />
       <div className="relative z-10 mx-auto w-full max-w-md">
         <div className="mb-10">
-          <BrandMark href="/" size="md" />
+          <Logo href="/" size="md" rotated withByline />
         </div>
         <Suspense fallback={<p className="text-sm text-[var(--muted)]">Loading…</p>}>
           <LoginForm />

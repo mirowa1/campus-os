@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { BrandMark } from "@/components/BrandMark";
+import { Logo } from "@/components/Logo";
 import { createClient } from "@/lib/supabase/client";
 
 export default function SignupPage() {
@@ -51,7 +51,7 @@ export default function SignupPage() {
       <div className="hero-blob" aria-hidden />
       <div className="relative z-10 mx-auto w-full max-w-md">
         <div className="mb-10">
-          <BrandMark href="/" size="md" />
+          <Logo href="/" size="md" rotated withByline />
         </div>
         <h1 className="font-heading text-4xl">Create your account</h1>
         <p className="mt-2 text-[var(--muted)]">

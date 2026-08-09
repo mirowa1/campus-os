@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { DM_Sans, Instrument_Serif, Space_Grotesk } from "next/font/google";
+import {
+  DM_Sans,
+  Fredoka,
+  Instrument_Serif,
+  Space_Grotesk,
+} from "next/font/google";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -17,6 +22,13 @@ const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   weight: ["500", "600", "700"],
   variable: "--font-heading",
+});
+
+const fredoka = Fredoka({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-fredoka",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -48,7 +60,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${dmSans.variable} ${instrumentSerif.variable} ${spaceGrotesk.variable} antialiased`}
+        className={`${dmSans.variable} ${instrumentSerif.variable} ${spaceGrotesk.variable} ${fredoka.variable} antialiased`}
       >
         {children}
       </body>
