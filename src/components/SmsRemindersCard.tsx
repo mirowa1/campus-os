@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 export type NotificationPrefs = {
@@ -212,18 +213,41 @@ export function SmsRemindersCard({ initial }: Props) {
         )}
 
       {phoneVerified && !phoneDirty && (
-        <label className="flex cursor-pointer gap-3 rounded-xl border border-[var(--line)] bg-[var(--bg-soft)] p-4">
-          <input
-            type="checkbox"
-            className="mt-1 h-4 w-4 shrink-0"
-            checked={smsEnabled}
-            disabled={toggling}
-            onChange={(e) => void onConsentChange(e.target.checked)}
-          />
-          <span className="text-sm leading-relaxed text-[var(--ink)]">
-            {CONSENT_LABEL}
-          </span>
-        </label>
+        <div className="space-y-2">
+          <label className="flex cursor-pointer gap-3 rounded-xl border border-[var(--line)] bg-[var(--bg-soft)] p-4">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 shrink-0"
+              checked={smsEnabled}
+              disabled={toggling}
+              onChange={(e) => void onConsentChange(e.target.checked)}
+            />
+            <span className="text-sm leading-relaxed text-[var(--ink)]">
+              {CONSENT_LABEL}
+            </span>
+          </label>
+          <p className="text-xs text-[var(--muted)]">
+            By checking this box, you agree to our{" "}
+            <Link
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--accent)] hover:underline"
+            >
+              Privacy Policy
+            </Link>{" "}
+            and{" "}
+            <Link
+              href="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--accent)] hover:underline"
+            >
+              Terms of Service
+            </Link>
+            .
+          </p>
+        </div>
       )}
 
       <p className="text-xs text-[var(--muted)]">
