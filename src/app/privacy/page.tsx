@@ -168,11 +168,9 @@ export default function PrivacyPage() {
               </li>
               <li>
                 <strong>Google Calendar OAuth tokens</strong> (access and
-                refresh tokens) are encrypted at rest with a dedicated
-                encryption key (
-                <code className="text-sm">GOOGLE_TOKEN_ENCRYPTION_KEY</code>)
-                before they are stored. We use these tokens only to sync
-                calendar events you authorize.
+                refresh tokens) are encrypted at rest using a dedicated
+                encryption key before they are stored. We use these
+                tokens only to sync calendar events you authorize.
               </li>
               <li>
                 Data is transmitted over <strong>HTTPS/TLS</strong> in transit.
