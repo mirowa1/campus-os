@@ -64,6 +64,8 @@ export async function updateSession(request: NextRequest) {
   // session must not redirect to /dashboard before the user sets a password.
   const isPublic =
     path === "/" ||
+    path === "/robots.txt" ||
+    path === "/sitemap.xml" ||
     isAuthRoute ||
     path.startsWith("/forgot-password") ||
     path.startsWith("/reset-password") ||

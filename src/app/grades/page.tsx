@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -9,6 +10,10 @@ import {
 } from "@/lib/grades-aggregate";
 import { createClient } from "@/lib/supabase/server";
 import type { AssessmentRow, ClassRow } from "@/lib/types";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 function TrendArrow({
   trend,

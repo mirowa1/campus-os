@@ -6,6 +6,7 @@ import {
   startOfWeek,
   subMonths,
 } from "date-fns";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import {
@@ -22,6 +23,10 @@ import type {
   ClassMeetingRow,
   ClassRow,
 } from "@/lib/types";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 /**
  * Calendar shows syllabus assessments (by due_date), recurring class meetings,

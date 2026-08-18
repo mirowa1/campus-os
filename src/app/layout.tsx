@@ -36,6 +36,10 @@ export const metadata: Metadata = {
   title: "Coursework by CoreMax",
   description:
     "Coursework by CoreMax — upload your syllabus and get deadlines, grades, and what you need to stay on track.",
+  robots: {
+    index: true,
+    follow: true,
+  },
   openGraph: {
     title: "Coursework by CoreMax",
     description:
