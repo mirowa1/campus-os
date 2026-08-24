@@ -184,6 +184,24 @@ export default function PrivacyPage() {
           </section>
 
           <section className="space-y-3">
+            <h2 className="font-heading text-2xl">
+              AI features and Google API data
+            </h2>
+            <p>
+              CoreMax uses the Claude API (Anthropic) to power AI features such
+              as study guides, quizzes, and resume generation. These AI features
+              process only the course materials, notes, and content you directly
+              upload or provide for that purpose — Google Calendar data is never
+              sent to or processed by any AI model. Google Calendar API access is
+              used solely to create and display calendar events reflecting
+              assignment and exam due dates; this data is not used to train,
+              improve, or fine-tune any AI/ML model. Our use of data received
+              from Google APIs adheres to the Google API Services User Data
+              Policy, including the Limited Use requirements.
+            </p>
+          </section>
+
+          <section className="space-y-3">
             <h2 className="font-heading text-2xl">Sharing</h2>
             <p>
               We share data only with service providers that help us operate
