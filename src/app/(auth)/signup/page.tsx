@@ -35,6 +35,14 @@ export default function SignupPage() {
       return;
     }
 
+    void fetch("/api/auth/welcome", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    }).catch((err) => {
+      console.error("[welcome-email] request failed:", err);
+    });
+
     if (data.session) {
       router.push("/onboarding/upload");
       router.refresh();
