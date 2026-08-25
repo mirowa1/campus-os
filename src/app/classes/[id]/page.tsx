@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
+import { DeleteClassButton } from "@/components/DeleteClassButton";
 import { GoogleSyncButton } from "@/components/GoogleSyncButton";
 import { GradePanel } from "@/components/GradePanel";
 import { MaterialsPanel } from "@/components/MaterialsPanel";
@@ -135,6 +136,7 @@ export default async function ClassDetailPage({
               fileName={cls.syllabus_file_name}
             />
           )}
+          <DeleteClassButton classId={cls.id} classLabel={classLabel} />
         </div>
 
         <GradePanel classRow={cls} assessments={items} />

@@ -283,6 +283,101 @@ export async function syncClassToGoogleCalendar(opts: {
   return { created, updated };
 }
 
+/**
+ * Remove Google Calendar events for a class before DB cascade deletes the map rows.
+ * Skips if Google is not connected. Treats 404/410 as success (already gone).
+ */
+export async function deleteClassGoogleEvents(opts: {
+  supabase: SupabaseClient;
+  userId: string;
+  classId: string;
+}): Promise<{ deleted: number; skipped: number }> {
+  const [{ data: assessments }, { data: meetings }] = await Promise.all([
+    opts.supabase.from("assessments").select("id").eq("class_id", opts.classId),
+    opts.supabase
+      .from("class_meetings")
+      .select("id")
+      .eq("class_id", opts.classId),
+  ]);
+
+  const assessmentIds = (assessments ?? []).map((a) => a.id as string);
+  const meetingIds = (meetings ?? []).map((m) => m.id as string);
+
+  const eventIds: string[] = [];
+
+  if (assessmentIds.length > 0) {
+    const { data: rows } = await opts.supabase
+      .from("google_calendar_event_map")
+      .select("google_event_id")
+      .eq("user_id", opts.userId)
+      .in("assessment_id", assessmentIds);
+    for (const r of rows ?? []) {
+      if (r.google_event_id) eventIds.push(r.google_event_id as string);
+    }
+  }
+
+  if (meetingIds.length > 0) {
+    const { data: rows } = await opts.supabase
+      .from("google_calendar_event_map")
+      .select("google_event_id")
+      .eq("user_id", opts.userId)
+      .in("class_meeting_id", meetingIds);
+    for (const r of rows ?? []) {
+      if (r.google_event_id) eventIds.push(r.google_event_id as string);
+    }
+  }
+
+  if (eventIds.length === 0) {
+    return { deleted: 0, skipped: 0 };
+  }
+
+  const { data: connection } = await opts.supabase
+    .from("google_calendar_connections")
+    .select("user_id")
+    .eq("user_id", opts.userId)
+    .maybeSingle();
+
+  if (!connection) {
+    return { deleted: 0, skipped: eventIds.length };
+  }
+
+  let calendar;
+  try {
+    calendar = await getAuthedCalendar(opts.supabase, opts.userId);
+  } catch (err) {
+    console.warn("deleteClassGoogleEvents: could not auth Calendar", err);
+    return { deleted: 0, skipped: eventIds.length };
+  }
+
+  let deleted = 0;
+  let skipped = 0;
+  const unique = Array.from(new Set(eventIds));
+
+  for (const eventId of unique) {
+    try {
+      await calendar.events.delete({
+        calendarId: "primary",
+        eventId,
+      });
+      deleted += 1;
+    } catch (err: unknown) {
+      const status =
+        err && typeof err === "object" && "code" in err
+          ? (err as { code?: number }).code
+          : undefined;
+      // Already deleted / gone
+      if (status === 404 || status === 410) {
+        deleted += 1;
+        continue;
+      }
+      console.warn("deleteClassGoogleEvents: failed for", eventId, err);
+      skipped += 1;
+    }
+  }
+
+  return { deleted, skipped };
+}
+
 function alignToWeekday(isoDate: string, dayOfWeek: number): string {
   const d = new Date(`${isoDate}T12:00:00`);
   const current = d.getDay();
