@@ -50,7 +50,7 @@ export function UploadDropzone({
         handleFiles(e.dataTransfer.files);
       }}
       className={`surface flex cursor-pointer flex-col items-center justify-center rounded-2xl border-dashed px-6 py-10 text-center transition ${
-        dragging ? "border-[var(--accent)] bg-[var(--accent)]/5" : ""
+        dragging ? "dropzone-dragging" : ""
       } ${disabled ? "pointer-events-none opacity-60" : ""}`}
     >
       <input

@@ -69,6 +69,15 @@ body {
     0 0 28px var(--glow);
 }
 
+/* Beats .surface border/background when UploadDropzone is dragging */
+.surface.dropzone-dragging {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-elevated));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent),
+    0 0 28px var(--glow);
+}
+
 .btn {
   @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition;
 }
