@@ -47,13 +47,22 @@ export default function OnboardingUploadPage() {
         Upload a syllabus
       </h1>
       <p className="mt-3 text-[var(--muted)]">
-        No empty dashboard — drop a file and we&apos;ll plan your semester in
-        under a minute.
+        Drop a syllabus and we&apos;ll plan your semester in under a minute — or
+        skip and add classes manually.
       </p>
 
       <div className="mt-10">
         <UploadDropzone onFile={onFile} disabled={loading} />
       </div>
+
+      <button
+        type="button"
+        className="btn btn-ghost mt-6 w-full"
+        disabled={loading}
+        onClick={() => router.push("/dashboard")}
+      >
+        Skip for now
+      </button>
 
       {status && (
         <p className="mt-6 text-center text-sm text-[var(--accent)]">{status}</p>

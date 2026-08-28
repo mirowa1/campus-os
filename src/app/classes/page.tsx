@@ -91,11 +91,17 @@ export default async function ClassesPage() {
           <div className="surface mt-10 rounded-2xl p-12 text-center">
             <p className="font-heading text-2xl">No classes yet</p>
             <p className="mt-2 text-sm text-[var(--muted)]">
-              Upload a syllabus to populate your semester.
+              Add a class manually or upload a syllabus to populate your
+              semester.
             </p>
-            <Link href="/onboarding/upload" className="btn btn-primary mt-6">
-              Upload syllabus
-            </Link>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <Link href="/classes/new" className="btn btn-primary">
+                + Add Class
+              </Link>
+              <Link href="/onboarding/upload" className="btn btn-ghost">
+                + Upload Syllabus
+              </Link>
+            </div>
           </div>
         )}
       </main>

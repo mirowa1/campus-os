@@ -28,7 +28,34 @@ export default async function DashboardPage() {
   const classList = (classes ?? []) as ClassRow[];
 
   if (classList.length === 0) {
-    redirect("/onboarding/upload");
+    return (
+      <div className="hero-blob-shell">
+        <div className="hero-blob" aria-hidden />
+        <AppNav email={user.email} />
+        <main className="mx-auto max-w-6xl px-6 py-10">
+          <h1 className="font-heading text-4xl">Today</h1>
+          <p className="mt-2 text-[var(--muted)]">
+            {format(new Date(), "EEEE, MMMM d")}
+          </p>
+
+          <div className="surface mt-10 rounded-2xl p-12 text-center">
+            <p className="font-heading text-3xl">Welcome to Coursework</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              Add your first class manually or upload a syllabus to auto-parse
+              deadlines and grades.
+            </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <Link href="/classes/new" className="btn btn-primary">
+                + Add Class
+              </Link>
+              <Link href="/onboarding/upload" className="btn btn-ghost">
+                + Upload Syllabus
+              </Link>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   const { data: assessments } = await supabase
