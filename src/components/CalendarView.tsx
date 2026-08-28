@@ -152,6 +152,101 @@ function noticeForNewOutOfViewDates(
   return { monthLabel, jumpDate, extraMonthCount };
 }
 
+type CalItemVariant = "grid" | "modal";
+
+function kindLabel(e: UnifiedCalItem): string {
+  if (e.kind === "assessment") {
+    if (e.type === "exam") return "Exam";
+    if (e.type === "quiz") return "Quiz";
+    if (e.type === "other") return "Other";
+    return "Assignment";
+  }
+  if (e.kind === "meeting") return "Class meeting";
+  return "Event";
+}
+
+function renderCalItem(
+  e: UnifiedCalItem,
+  variant: CalItemVariant,
+  onEditPersonal: (item: PersonalCalItem) => void
+) {
+  const compact = variant === "grid";
+  const textSize = compact ? "text-[10px]" : "text-sm";
+  const metaSize = compact ? "text-[9px]" : "text-xs";
+
+  if (e.kind === "assessment") {
+    return (
+      <Link
+        href={`/classes/${e.classId}`}
+        onClick={(ev) => ev.stopPropagation()}
+        className={`block truncate rounded px-1 py-0.5 leading-tight bg-[var(--bg-soft)] hover:bg-[var(--accent)]/20 ${textSize} ${
+          compact ? "" : "p-2"
+        }`}
+        title={`${e.title} · ${e.classLabel} · ${e.type}`}
+      >
+        {!compact && (
+          <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-[var(--muted)]">
+            {kindLabel(e)}
+          </span>
+        )}
+        <span className="font-medium">{e.title}</span>
+        <span className={`mt-0.5 block truncate text-[var(--muted)] ${metaSize}`}>
+          {e.classLabel}
+        </span>
+      </Link>
+    );
+  }
+
+  if (e.kind === "meeting") {
+    return (
+      <Link
+        href={`/classes/${e.classId}`}
+        onClick={(ev) => ev.stopPropagation()}
+        className={`block truncate rounded border border-dashed border-[var(--accent)]/50 bg-transparent px-1 py-0.5 leading-tight hover:bg-[var(--accent)]/10 ${textSize} ${
+          compact ? "" : "p-2"
+        }`}
+        title={`${e.classLabel} · ${e.title}${e.location ? ` · ${e.location}` : ""}`}
+      >
+        {!compact && (
+          <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-[var(--accent)]">
+            {kindLabel(e)}
+          </span>
+        )}
+        <span className="font-medium text-[var(--accent)]">{e.classLabel}</span>
+        <span className={`mt-0.5 block truncate text-[var(--muted)] ${metaSize}`}>
+          {e.title}
+        </span>
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={(ev) => {
+        ev.stopPropagation();
+        onEditPersonal(e);
+      }}
+      className={`block w-full truncate rounded px-1 py-0.5 text-left leading-tight bg-[var(--accent)]/15 hover:bg-[var(--accent)]/25 ${textSize} ${
+        compact ? "" : "p-2"
+      }`}
+      title={e.classLabel ? `${e.title} · ${e.classLabel}` : e.title}
+    >
+      {!compact && (
+        <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-[var(--muted)]">
+          {kindLabel(e)}
+        </span>
+      )}
+      <span className="font-medium">{e.title}</span>
+      {e.classLabel && (
+        <span className={`mt-0.5 block truncate text-[var(--muted)] ${metaSize}`}>
+          {e.classLabel}
+        </span>
+      )}
+    </button>
+  );
+}
+
 export function CalendarView({
   assessments,
   personalEvents,
@@ -170,6 +265,7 @@ export function CalendarView({
     ...meetingEvents,
   ]);
   const [form, setForm] = useState<FormState | null>(null);
+  const [dayView, setDayView] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newDatesNotice, setNewDatesNotice] = useState<NewDatesNotice | null>(
@@ -217,6 +313,15 @@ export function CalendarView({
     // Intentionally omit cursor/view from deps — use values at prop-change time only.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve user viewport on syllabus refresh
   }, [assessments, personalEvents]);
+
+  useEffect(() => {
+    if (!dayView) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setDayView(null);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [dayView]);
 
   const days = useMemo(() => {
     if (view === "week") {
@@ -269,6 +374,24 @@ export function CalendarView({
   function openCreate(date?: string) {
     setError(null);
     setForm(emptyForm(date || format(new Date(), "yyyy-MM-dd")));
+  }
+
+  function openDayView(dateKey: string) {
+    setDayView(dateKey);
+  }
+
+  function closeDayView() {
+    setDayView(null);
+  }
+
+  function openCreateForDay(dateKey: string) {
+    closeDayView();
+    openCreate(dateKey);
+  }
+
+  function openEditFromDay(item: PersonalCalItem) {
+    closeDayView();
+    openEdit(item);
   }
 
   function openEdit(item: PersonalCalItem) {
@@ -410,6 +533,7 @@ export function CalendarView({
   }
 
   const limit = view === "week" ? 4 : 2;
+  const dayViewEvents = dayView ? (byDay.get(dayView) ?? []) : [];
 
   return (
     <div className="surface rounded-2xl p-6 md:p-7">
@@ -627,11 +751,11 @@ export function CalendarView({
               key={key}
               role="button"
               tabIndex={0}
-              onClick={() => openCreate(key)}
+              onClick={() => openDayView(key)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  openCreate(key);
+                  openDayView(key);
                 }
               }}
               className={`min-h-[5.5rem] cursor-pointer rounded-lg border border-[var(--line)] p-1.5 text-left transition hover:border-[var(--accent)]/40 ${
@@ -644,59 +768,21 @@ export function CalendarView({
               <ul className="mt-1 space-y-0.5">
                 {dayEvents.slice(0, limit).map((e) => (
                   <li key={`${e.kind}-${e.id}`}>
-                    {e.kind === "assessment" ? (
-                      <Link
-                        href={`/classes/${e.classId}`}
-                        onClick={(ev) => ev.stopPropagation()}
-                        className="block truncate rounded px-1 py-0.5 text-[10px] leading-tight bg-[var(--bg-soft)] hover:bg-[var(--accent)]/20"
-                        title={`${e.title} · ${e.classLabel} · ${e.type}`}
-                      >
-                        <span className="font-medium">{e.title}</span>
-                        <span className="mt-0.5 block truncate text-[9px] text-[var(--muted)]">
-                          {e.classLabel}
-                        </span>
-                      </Link>
-                    ) : e.kind === "meeting" ? (
-                      <Link
-                        href={`/classes/${e.classId}`}
-                        onClick={(ev) => ev.stopPropagation()}
-                        className="block truncate rounded border border-dashed border-[var(--accent)]/50 bg-transparent px-1 py-0.5 text-[10px] leading-tight hover:bg-[var(--accent)]/10"
-                        title={`${e.classLabel} · ${e.title}${e.location ? ` · ${e.location}` : ""}`}
-                      >
-                        <span className="font-medium text-[var(--accent)]">
-                          {e.classLabel}
-                        </span>
-                        <span className="mt-0.5 block truncate text-[9px] text-[var(--muted)]">
-                          {e.title}
-                        </span>
-                      </Link>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={(ev) => {
-                          ev.stopPropagation();
-                          openEdit(e);
-                        }}
-                        className="block w-full truncate rounded px-1 py-0.5 text-left text-[10px] leading-tight bg-[var(--accent)]/15 hover:bg-[var(--accent)]/25"
-                        title={
-                          e.classLabel
-                            ? `${e.title} · ${e.classLabel}`
-                            : e.title
-                        }
-                      >
-                        <span className="font-medium">{e.title}</span>
-                        {e.classLabel && (
-                          <span className="mt-0.5 block truncate text-[9px] text-[var(--muted)]">
-                            {e.classLabel}
-                          </span>
-                        )}
-                      </button>
-                    )}
+                    {renderCalItem(e, "grid", openEditFromDay)}
                   </li>
                 ))}
                 {dayEvents.length > limit && (
-                  <li className="px-1 text-[10px] text-[var(--muted)]">
-                    +{dayEvents.length - limit} more
+                  <li>
+                    <button
+                      type="button"
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        openDayView(key);
+                      }}
+                      className="px-1 text-[10px] text-[var(--muted)] hover:text-[var(--ink)]"
+                    >
+                      +{dayEvents.length - limit} more
+                    </button>
                   </li>
                 )}
               </ul>
@@ -704,6 +790,59 @@ export function CalendarView({
           );
         })}
       </div>
+
+      {dayView && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="day-view-title"
+          onClick={closeDayView}
+        >
+          <div
+            className="surface max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl shadow-xl"
+            onClick={(ev) => ev.stopPropagation()}
+          >
+            <div className="border-b border-[var(--line)] px-5 py-4">
+              <h3 id="day-view-title" className="font-heading text-xl">
+                {format(parseISO(dayView), "EEEE, MMMM d, yyyy")}
+              </h3>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                {dayViewEvents.length === 0
+                  ? "Nothing scheduled this day."
+                  : `${dayViewEvents.length} item${
+                      dayViewEvents.length === 1 ? "" : "s"
+                    }`}
+              </p>
+            </div>
+
+            <ul className="max-h-[50vh] space-y-2 overflow-y-auto px-5 py-4">
+              {dayViewEvents.map((e) => (
+                <li key={`${e.kind}-${e.id}`}>
+                  {renderCalItem(e, "modal", openEditFromDay)}
+                </li>
+              ))}
+            </ul>
+
+            <div className="flex flex-wrap gap-2 border-t border-[var(--line)] px-5 py-4">
+              <button
+                type="button"
+                className="btn btn-primary text-xs"
+                onClick={() => openCreateForDay(dayView)}
+              >
+                + Add event
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost text-xs"
+                onClick={closeDayView}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
