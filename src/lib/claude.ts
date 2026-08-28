@@ -86,7 +86,8 @@ export async function parseSyllabusWithClaude(input: {
 
   const message = await client.messages.create({
     model: "claude-sonnet-5",
-    max_tokens: 4096,
+    max_tokens: 8192,
+    thinking: { type: "disabled" },
     system: SYSTEM,
     messages: [{ role: "user", content }],
   });
@@ -107,6 +108,11 @@ export async function parseSyllabusWithClaude(input: {
         parseErr instanceof Error ? parseErr.message : String(parseErr),
       rawResponse: block.text,
     });
+    if (message.stop_reason === "max_tokens") {
+      throw new Error(
+        "This syllabus has too many items to process at once — try splitting it or contact support."
+      );
+    }
     throw new Error("Failed to parse Claude JSON response.");
   }
 
