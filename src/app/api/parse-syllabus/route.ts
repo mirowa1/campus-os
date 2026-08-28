@@ -56,6 +56,14 @@ export async function POST(request: NextRequest) {
       file.name
     );
 
+    console.error("[parse-syllabus] parse attempt", {
+      fileName: file.name,
+      mime: file.type || "application/octet-stream",
+      sizeBytes: buffer.length,
+      extractedKind: extracted.kind,
+      textLength: extracted.kind === "text" ? extracted.text.length : null,
+    });
+
     const parsed =
       extracted.kind === "image"
         ? await parseSyllabusWithClaude({

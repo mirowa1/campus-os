@@ -1,8 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { UploadDropzone } from "@/components/UploadDropzone";
+
+const PARSE_FAILED_MESSAGE =
+  "We couldn't read that syllabus — try a different file, or add your class manually.";
 
 export default function OnboardingUploadPage() {
   const router = useRouter();
@@ -26,13 +30,16 @@ export default function OnboardingUploadPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to parse syllabus");
+        setError(PARSE_FAILED_MESSAGE);
+        setLoading(false);
+        setStatus(null);
+        return;
       }
       setStatus("Building your semester…");
       router.push(`/onboarding/review?classId=${data.class.id}`);
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+    } catch {
+      setError(PARSE_FAILED_MESSAGE);
       setLoading(false);
       setStatus(null);
     }
@@ -68,9 +75,12 @@ export default function OnboardingUploadPage() {
         <p className="mt-6 text-center text-sm text-[var(--accent)]">{status}</p>
       )}
       {error && (
-        <p className="mt-6 rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-3 py-2 text-sm text-[var(--danger)]">
-          {error}
-        </p>
+        <div className="mt-6 rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-3 py-3 text-sm text-[var(--danger)]">
+          <p>{error}</p>
+          <Link href="/classes/new" className="btn btn-ghost mt-3 w-full">
+            Add class manually
+          </Link>
+        </div>
       )}
     </main>
   );

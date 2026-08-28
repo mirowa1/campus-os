@@ -99,7 +99,14 @@ export async function parseSyllabusWithClaude(input: {
   let parsed: ParsedSyllabus;
   try {
     parsed = JSON.parse(stripFences(block.text)) as ParsedSyllabus;
-  } catch {
+  } catch (parseErr) {
+    console.error("[parseSyllabusWithClaude] JSON.parse failed", {
+      stop_reason: message.stop_reason,
+      usage: message.usage,
+      parseError:
+        parseErr instanceof Error ? parseErr.message : String(parseErr),
+      rawResponse: block.text,
+    });
     throw new Error("Failed to parse Claude JSON response.");
   }
 
