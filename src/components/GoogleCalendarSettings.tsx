@@ -35,9 +35,6 @@ function GoogleCalendarSettingsInner({
   return (
     <section className="surface rounded-2xl p-6">
       <h2 className="font-heading text-2xl">Google Calendar</h2>
-      <p className="mt-2 text-sm text-[var(--muted)]">
-        Currently in limited testing — available to select users only.
-      </p>
 
       {status === "connected" && (
         <p className="mt-4 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3 py-2 text-sm text-[var(--accent)]">
