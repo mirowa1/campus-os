@@ -1,13 +1,38 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const GET_USER_TIMEOUT_MS = 4000;
+
+/** Routes that never need a Supabase session check in middleware. */
+function isPublicPath(path: string): boolean {
+  if (
+    path === "/" ||
+    path === "/robots.txt" ||
+    path === "/sitemap.xml" ||
+    path === "/manifest.webmanifest"
+  ) {
+    return true;
+  }
+  if (
+    path.startsWith("/login") ||
+    path.startsWith("/signup") ||
+    path.startsWith("/forgot-password") ||
+    path.startsWith("/reset-password") ||
+    path.startsWith("/privacy") ||
+    path.startsWith("/terms")
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export async function updateSession(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const path = request.nextUrl.pathname;
 
   if (!url || !key || url.includes("YOUR_PROJECT")) {
     // Allow public routes without Supabase configured yet
-    const path = request.nextUrl.pathname;
     const needsAuth =
       path.startsWith("/dashboard") ||
       path.startsWith("/classes") ||
@@ -21,6 +46,10 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (isPublicPath(path)) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -28,6 +57,13 @@ export async function updateSession(request: NextRequest) {
   });
 
   const supabase = createServerClient(url, key, {
+    global: {
+      fetch: (input, init) =>
+        fetch(input, {
+          ...init,
+          signal: AbortSignal.timeout(GET_USER_TIMEOUT_MS),
+        }),
+    },
     cookies: {
       get(name: string) {
         return request.cookies.get(name)?.value;
@@ -53,26 +89,21 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch (err) {
+    console.warn(
+      "[middleware] getUser failed or timed out; treating as unauthenticated",
+      err instanceof Error ? err.message : err
+    );
+  }
 
-  const path = request.nextUrl.pathname;
   const isAuthRoute =
     path.startsWith("/login") || path.startsWith("/signup");
-  // Password reset routes stay public but are NOT auth routes — a recovery
-  // session must not redirect to /dashboard before the user sets a password.
-  const isPublic =
-    path === "/" ||
-    path === "/robots.txt" ||
-    path === "/sitemap.xml" ||
-    isAuthRoute ||
-    path.startsWith("/forgot-password") ||
-    path.startsWith("/reset-password") ||
-    path.startsWith("/privacy") ||
-    path.startsWith("/terms");
 
-  if (!user && !isPublic && !path.startsWith("/api/")) {
+  if (!user && !path.startsWith("/api/")) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     return NextResponse.redirect(redirectUrl);
