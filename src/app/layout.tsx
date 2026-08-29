@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import {
   DM_Sans,
   Fredoka,
@@ -54,12 +54,15 @@ export const metadata: Metadata = {
     description:
       "Upload your syllabus and get deadlines, grades, and what you need to stay on track.",
   },
-  themeColor: "#0a0a0a",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Coursework",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0a0a0a",
 };
 
 export default function RootLayout({
