@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import {
+  PaywallError,
+  assertCanUseSyllabus,
+  markFreeSyllabusUsed,
+} from "@/lib/billing";
 import { parseSyllabusWithClaude } from "@/lib/claude";
 import { extractSyllabusContent } from "@/lib/extract";
 import { createClient } from "@/lib/supabase/server";
@@ -16,6 +21,19 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    let billing;
+    try {
+      billing = await assertCanUseSyllabus(supabase, user.id, user.email);
+    } catch (err) {
+      if (err instanceof PaywallError) {
+        return NextResponse.json(
+          { error: "PAYWALL_REQUIRED", feature: err.feature },
+          { status: 402 }
+        );
+      }
+      throw err;
     }
 
     if (!process.env.ANTHROPIC_API_KEY) {
@@ -135,6 +153,8 @@ export async function POST(request: NextRequest) {
         );
       }
     }
+
+    await markFreeSyllabusUsed(supabase, billing);
 
     const { data: assessments } = await supabase
       .from("assessments")

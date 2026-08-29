@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { PaywallModal } from "@/components/PaywallModal";
 import { UploadDropzone } from "@/components/UploadDropzone";
 
 const PARSE_FAILED_MESSAGE =
@@ -13,6 +14,7 @@ export default function OnboardingUploadPage() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [paywallOpen, setPaywallOpen] = useState(false);
 
   async function onFile(file: File) {
     setError(null);
@@ -29,6 +31,12 @@ export default function OnboardingUploadPage() {
         body: form,
       });
       const data = await res.json();
+      if (res.status === 402 || data.error === "PAYWALL_REQUIRED") {
+        setPaywallOpen(true);
+        setLoading(false);
+        setStatus(null);
+        return;
+      }
       if (!res.ok) {
         setError(PARSE_FAILED_MESSAGE);
         setLoading(false);
@@ -82,6 +90,12 @@ export default function OnboardingUploadPage() {
           </Link>
         </div>
       )}
+
+      <PaywallModal
+        open={paywallOpen}
+        feature="syllabus"
+        onClose={() => setPaywallOpen(false)}
+      />
     </main>
   );
 }

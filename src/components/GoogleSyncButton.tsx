@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { PaywallModal } from "@/components/PaywallModal";
 
 export function GoogleSyncButton({
   classId,
@@ -13,6 +14,7 @@ export function GoogleSyncButton({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [paywallOpen, setPaywallOpen] = useState(false);
 
   async function sync() {
     setLoading(true);
@@ -24,9 +26,14 @@ export function GoogleSyncButton({
       });
       const data = (await res.json()) as {
         error?: string;
+        feature?: string;
         created?: number;
         updated?: number;
       };
+      if (res.status === 402 || data.error === "PAYWALL_REQUIRED") {
+        setPaywallOpen(true);
+        return;
+      }
       if (!res.ok) {
         setError(data.error || "Sync failed");
         return;
@@ -81,6 +88,11 @@ export function GoogleSyncButton({
       {error && (
         <p className="mt-3 text-sm text-[var(--danger)]">{error}</p>
       )}
+      <PaywallModal
+        open={paywallOpen}
+        feature="calendar_sync"
+        onClose={() => setPaywallOpen(false)}
+      />
     </div>
   );
 }

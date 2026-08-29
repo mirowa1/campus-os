@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
+import { BillingBanner } from "@/components/BillingBanner";
 import { GoogleCalendarSettings } from "@/components/GoogleCalendarSettings";
 import { createClient } from "@/lib/supabase/server";
 
@@ -36,6 +37,7 @@ export default async function SettingsPage() {
             .
           </p>
         </div>
+        <BillingBanner />
         <GoogleCalendarSettings connected={!!connection} />
       </main>
     </div>

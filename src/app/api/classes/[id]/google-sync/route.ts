@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import {
+  PaywallError,
+  assertCanUseCalendarSync,
+  markFreeCalendarSyncUsed,
+} from "@/lib/billing";
 import { syncClassToGoogleCalendar } from "@/lib/google-calendar";
 import { createClient } from "@/lib/supabase/server";
 import type {
@@ -21,6 +26,19 @@ export async function POST(
     } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    let billing;
+    try {
+      billing = await assertCanUseCalendarSync(supabase, user.id, user.email);
+    } catch (err) {
+      if (err instanceof PaywallError) {
+        return NextResponse.json(
+          { error: "PAYWALL_REQUIRED", feature: err.feature },
+          { status: 402 }
+        );
+      }
+      throw err;
     }
 
     const classId = context.params.id;
@@ -63,6 +81,8 @@ export async function POST(
       assessments: (assessments ?? []) as AssessmentRow[],
       meetings: (meetings ?? []) as ClassMeetingRow[],
     });
+
+    await markFreeCalendarSyncUsed(supabase, billing);
 
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {
