@@ -19,10 +19,13 @@ export const PREMIUM_STATUSES = new Set<SubscriptionStatus>([
   "past_due",
 ]);
 
+export const FREE_CLASSTOEXCEL_LIMIT = 3;
+
 export type BillingProfile = {
   id: string;
   free_syllabus_used: boolean;
   free_calendar_sync_used: boolean;
+  classtoexcel_conversions_used: number;
   subscription_status: SubscriptionStatus;
   subscription_plan: BillingPlan | null;
   subscription_current_period_end: string | null;
@@ -69,8 +72,8 @@ export function getStripePriceId(plan: BillingPlan): string {
 }
 
 export class PaywallError extends Error {
-  feature: "syllabus" | "calendar_sync";
-  constructor(feature: "syllabus" | "calendar_sync") {
+  feature: "syllabus" | "calendar_sync" | "classtoexcel";
+  constructor(feature: "syllabus" | "calendar_sync" | "classtoexcel") {
     super("PAYWALL_REQUIRED");
     this.name = "PaywallError";
     this.feature = feature;
@@ -78,7 +81,7 @@ export class PaywallError extends Error {
 }
 
 const BILLING_PROFILE_COLUMNS =
-  "id, free_syllabus_used, free_calendar_sync_used, subscription_status, subscription_plan, subscription_current_period_end, subscription_cancel_at_period_end, subscription_expires_at, stripe_customer_id, stripe_subscription_id";
+  "id, free_syllabus_used, free_calendar_sync_used, classtoexcel_conversions_used, subscription_status, subscription_plan, subscription_current_period_end, subscription_cancel_at_period_end, subscription_expires_at, stripe_customer_id, stripe_subscription_id";
 
 async function ensureBillingRow(
   supabase: SupabaseClient,
@@ -175,6 +178,42 @@ export async function markFreeCalendarSyncUsed(
   const { error } = await supabase
     .from("profiles")
     .update({ free_calendar_sync_used: true })
+    .eq("id", profile.id);
+  if (error) throw error;
+}
+
+export function getClassToExcelRemaining(profile: BillingProfile): number | null {
+  if (hasActiveSubscription(profile)) return null;
+  return Math.max(
+    0,
+    FREE_CLASSTOEXCEL_LIMIT - profile.classtoexcel_conversions_used
+  );
+}
+
+export async function assertCanUseClassToExcel(
+  supabase: SupabaseClient,
+  userId: string,
+  email?: string | null
+): Promise<BillingProfile> {
+  const profile = await getBillingProfile(supabase, userId, email);
+  if (hasActiveSubscription(profile)) return profile;
+  if (profile.classtoexcel_conversions_used < FREE_CLASSTOEXCEL_LIMIT) {
+    return profile;
+  }
+  throw new PaywallError("classtoexcel");
+}
+
+export async function incrementClassToExcelUsage(
+  supabase: SupabaseClient,
+  profile: BillingProfile
+): Promise<void> {
+  if (hasActiveSubscription(profile)) return;
+  if (profile.classtoexcel_conversions_used >= FREE_CLASSTOEXCEL_LIMIT) return;
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      classtoexcel_conversions_used: profile.classtoexcel_conversions_used + 1,
+    })
     .eq("id", profile.id);
   if (error) throw error;
 }
