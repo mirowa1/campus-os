@@ -76,11 +76,10 @@ type FormState = {
   id: string | null;
   title: string;
   date: string;
-  classId: string; // "" = No class
 };
 
 function emptyForm(date: string): FormState {
-  return { mode: "create", id: null, title: "", date, classId: "" };
+  return { mode: "create", id: null, title: "", date };
 }
 
 /** Prefer earliest dated item on/after today; else earliest overall; else now. */
@@ -401,7 +400,6 @@ export function CalendarView({
       id: item.id,
       title: item.title,
       date: item.date.slice(0, 10),
-      classId: item.classId ?? "",
     });
   }
 
@@ -432,8 +430,6 @@ export function CalendarView({
     setSaving(true);
     setError(null);
     const supabase = createClient();
-    const classId = form.classId || null;
-
     try {
       if (form.mode === "create") {
         const {
@@ -447,7 +443,7 @@ export function CalendarView({
             user_id: user.id,
             title,
             event_date: form.date,
-            class_id: classId,
+            class_id: null,
           })
           .select()
           .single();
@@ -473,7 +469,7 @@ export function CalendarView({
           .update({
             title,
             event_date: form.date,
-            class_id: classId,
+            class_id: null,
           })
           .eq("id", form.id)
           .select()
@@ -680,26 +676,7 @@ export function CalendarView({
                 }
               />
             </div>
-            <div>
-              <label className="label" htmlFor="cal-class">
-                Class (optional)
-              </label>
-              <select
-                id="cal-class"
-                className="input"
-                value={form.classId}
-                onChange={(e) =>
-                  setForm((f) => (f ? { ...f, classId: e.target.value } : f))
-                }
-              >
-                <option value="">No class</option>
-                {classes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.code ? `${c.code} — ${c.name}` : c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+
           </div>
           {error && (
             <p className="mt-2 text-sm text-[var(--danger)]">{error}</p>

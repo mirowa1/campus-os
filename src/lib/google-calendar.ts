@@ -378,6 +378,76 @@ export async function deleteClassGoogleEvents(opts: {
   return { deleted, skipped };
 }
 
+
+/** Best-effort class re-sync when Google is connected; no-op otherwise. */
+export async function trySyncClassToGoogleCalendar(opts: {
+  supabase: SupabaseClient;
+  userId: string;
+  classId: string;
+  classRow: ClassRow;
+}): Promise<void> {
+  const { data: connection } = await opts.supabase
+    .from("google_calendar_connections")
+    .select("user_id")
+    .eq("user_id", opts.userId)
+    .maybeSingle();
+
+  if (!connection) return;
+
+  const [{ data: assessments }, { data: meetings }] = await Promise.all([
+    opts.supabase.from("assessments").select("*").eq("class_id", opts.classId),
+    opts.supabase.from("class_meetings").select("*").eq("class_id", opts.classId),
+  ]);
+
+  await syncClassToGoogleCalendar({
+    supabase: opts.supabase,
+    userId: opts.userId,
+    classRow: opts.classRow,
+    assessments: (assessments ?? []) as AssessmentRow[],
+    meetings: (meetings ?? []) as ClassMeetingRow[],
+  });
+}
+
+/** Delete a single assessment's Google Calendar event if mapped. */
+export async function deleteAssessmentGoogleEvent(opts: {
+  supabase: SupabaseClient;
+  userId: string;
+  assessmentId: string;
+}): Promise<void> {
+  const { data: mapRow } = await opts.supabase
+    .from("google_calendar_event_map")
+    .select("google_event_id")
+    .eq("user_id", opts.userId)
+    .eq("assessment_id", opts.assessmentId)
+    .maybeSingle();
+
+  if (!mapRow?.google_event_id) return;
+
+  const { data: connection } = await opts.supabase
+    .from("google_calendar_connections")
+    .select("user_id")
+    .eq("user_id", opts.userId)
+    .maybeSingle();
+
+  if (!connection) return;
+
+  const calendar = await getAuthedCalendar(opts.supabase, opts.userId);
+
+  try {
+    await calendar.events.delete({
+      calendarId: "primary",
+      eventId: mapRow.google_event_id as string,
+    });
+  } catch (err: unknown) {
+    const status =
+      err && typeof err === "object" && "code" in err
+        ? (err as { code?: number }).code
+        : undefined;
+    if (status === 404 || status === 410) return;
+    throw err;
+  }
+}
+
 function alignToWeekday(isoDate: string, dayOfWeek: number): string {
   const d = new Date(`${isoDate}T12:00:00`);
   const current = d.getDay();
