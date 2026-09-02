@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import {
   ClassToExcelPanel,
@@ -10,6 +9,7 @@ import {
   getClassToExcelRemaining,
   hasActiveSubscription,
 } from "@/lib/billing";
+import { getUserOrRedirect } from "@/lib/supabase/get-user-or-redirect";
 import { createClient } from "@/lib/supabase/server";
 import type { ClassRow } from "@/lib/types";
 
@@ -23,10 +23,7 @@ function countByClassId(rows: { class_id: string }[]) {
 
 export default async function ClassToExcelPage() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/classtoexcel");
+  const user = await getUserOrRedirect(supabase, "/login?next=/classtoexcel");
 
   const profile = await getBillingProfile(supabase, user.id, user.email);
   const subscribed = hasActiveSubscription(profile);

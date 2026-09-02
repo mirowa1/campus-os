@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { format, isAfter, parseISO, startOfDay } from "date-fns";
 import type { Metadata } from "next";
 import { AppNav } from "@/components/AppNav";
 import { StatusBadge } from "@/components/StatusBadge";
 import { computeGradeProjection } from "@/lib/grades";
+import { getUserOrRedirect } from "@/lib/supabase/get-user-or-redirect";
 import { createClient } from "@/lib/supabase/server";
 import type { AssessmentRow, ClassRow } from "@/lib/types";
 
@@ -14,10 +14,7 @@ export const metadata: Metadata = {
 
 export default async function DashboardPage() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const user = await getUserOrRedirect(supabase);
 
   const { data: classes } = await supabase
     .from("classes")

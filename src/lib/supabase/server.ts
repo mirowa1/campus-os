@@ -1,6 +1,9 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+/** Fail fast on stalled Supabase calls (Vercel function ceiling is 25s). */
+export const SERVER_FETCH_TIMEOUT_MS = 8000;
+
 export function createClient() {
   const cookieStore = cookies();
 
@@ -8,6 +11,13 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      global: {
+        fetch: (input, init) =>
+          fetch(input, {
+            ...init,
+            signal: AbortSignal.timeout(SERVER_FETCH_TIMEOUT_MS),
+          }),
+      },
       cookies: {
         get(name: string) {
           return cookieStore.get(name)?.value;
