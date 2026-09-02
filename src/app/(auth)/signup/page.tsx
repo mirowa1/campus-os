@@ -62,9 +62,6 @@ export default function SignupPage() {
           <Logo href="/" size="md" rotated withByline />
         </div>
         <h1 className="font-heading text-4xl">Create your account</h1>
-        <p className="mt-2 text-[var(--muted)]">
-          School email preferred — but any email works for testing.
-        </p>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
           <div>
