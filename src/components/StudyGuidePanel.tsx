@@ -2,9 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { pdf } from "@react-pdf/renderer";
 import React from "react";
-import { StudyGuidePdfDocument } from "@/components/StudyGuidePdfDocument";
 import { SourcePicker, EXTRA_TEXT_MAX_CHARS } from "@/components/SourcePicker";
 import type {
   CourseMaterialRow,
@@ -154,6 +152,10 @@ export function StudyGuidePanel({
     setDownloading(true);
     setError(null);
     try {
+      const [{ pdf }, { StudyGuidePdfDocument }] = await Promise.all([
+        import("@react-pdf/renderer"),
+        import("@/components/StudyGuidePdfDocument"),
+      ]);
       const blob = await pdf(
         React.createElement(StudyGuidePdfDocument, {
           classLabel,
