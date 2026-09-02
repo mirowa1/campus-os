@@ -41,3 +41,6 @@ fixtures/*.pdf
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local demo syllabi for video recording (not app code)
+/test-assets/
