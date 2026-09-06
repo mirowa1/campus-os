@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useState } from "react";
+import { GoogleAuthButton } from "@/components/GoogleAuthButton";
 import { Logo } from "@/components/Logo";
 import { createClient } from "@/lib/supabase/client";
 
@@ -10,6 +11,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resetSuccess = searchParams.get("reset") === "success";
+  const authError = searchParams.get("error") === "auth";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -47,8 +49,22 @@ function LoginForm() {
           Password updated. You can log in with your new password.
         </p>
       )}
+      {authError && (
+        <p className="mt-6 rounded-lg border border-[var(--danger)]/30 bg-[var(--danger)]/10 px-3 py-2 text-sm text-[var(--danger)]">
+          Google sign-in failed. Try again or use email.
+        </p>
+      )}
 
-      <form onSubmit={onSubmit} className="mt-8 space-y-4">
+      <div className="mt-8 space-y-4">
+        <GoogleAuthButton nextPath="/dashboard" />
+        <div className="flex items-center gap-3 text-sm text-[var(--muted)]">
+          <div className="h-px flex-1 bg-[var(--line)]" />
+          <span>or</span>
+          <div className="h-px flex-1 bg-[var(--line)]" />
+        </div>
+      </div>
+
+      <form onSubmit={onSubmit} className="mt-4 space-y-4">
         <div>
           <label className="label" htmlFor="email">
             Email

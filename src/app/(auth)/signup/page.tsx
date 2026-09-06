@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { GoogleAuthButton } from "@/components/GoogleAuthButton";
 import { Logo } from "@/components/Logo";
 import { createClient } from "@/lib/supabase/client";
 
@@ -63,7 +64,16 @@ export default function SignupPage() {
         </div>
         <h1 className="font-heading text-4xl">Create your account</h1>
 
-        <form onSubmit={onSubmit} className="mt-8 space-y-4">
+        <div className="mt-8 space-y-4">
+          <GoogleAuthButton nextPath="/onboarding/upload" />
+          <div className="flex items-center gap-3 text-sm text-[var(--muted)]">
+            <div className="h-px flex-1 bg-[var(--line)]" />
+            <span>or</span>
+            <div className="h-px flex-1 bg-[var(--line)]" />
+          </div>
+        </div>
+
+        <form onSubmit={onSubmit} className="mt-4 space-y-4">
           <div>
             <label className="label" htmlFor="email">
               Email
