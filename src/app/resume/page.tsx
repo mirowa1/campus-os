@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { ResumeBuilder } from "@/components/ResumeBuilder";
 import {
@@ -10,15 +9,13 @@ import {
   normalizeExtracurriculars,
   normalizeProjects,
 } from "@/lib/resume";
+import { getUserOrRedirect } from "@/lib/supabase/get-user-or-redirect";
 import { createClient } from "@/lib/supabase/server";
 import type { ResumeDataRow, ResumeRow } from "@/lib/types";
 
 export default async function ResumePage() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const user = await getUserOrRedirect(supabase);
 
   let { data: resume } = await supabase
     .from("resumes")

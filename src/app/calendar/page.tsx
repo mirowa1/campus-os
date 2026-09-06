@@ -7,7 +7,6 @@ import {
   subMonths,
 } from "date-fns";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import {
   CalendarView,
@@ -16,6 +15,7 @@ import {
   type PersonalCalItem,
 } from "@/components/CalendarView";
 import { expandMeetingsToCalItems } from "@/lib/class-meetings";
+import { getUserOrRedirect } from "@/lib/supabase/get-user-or-redirect";
 import { createClient } from "@/lib/supabase/server";
 import type {
   AssessmentRow,
@@ -34,10 +34,7 @@ export const metadata: Metadata = {
  */
 export default async function CalendarPage() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const user = await getUserOrRedirect(supabase);
 
   const { data: classes } = await supabase
     .from("classes")

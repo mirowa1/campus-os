@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { ProfileForm } from "@/components/ProfileForm";
 import {
@@ -7,6 +6,7 @@ import {
   type NotificationPrefs,
 } from "@/components/SmsRemindersCard";
 import { SiteFooter } from "@/components/SiteFooter";
+import { getUserOrRedirect } from "@/lib/supabase/get-user-or-redirect";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 
@@ -16,10 +16,7 @@ export const metadata: Metadata = {
 
 export default async function ProfilePage() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const user = await getUserOrRedirect(supabase);
 
   const [{ data: profile }, { data: notifPrefs }] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),

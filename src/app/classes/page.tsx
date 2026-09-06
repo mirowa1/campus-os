@@ -1,17 +1,14 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { StatusBadge } from "@/components/StatusBadge";
 import { computeGradeProjection } from "@/lib/grades";
+import { getUserOrRedirect } from "@/lib/supabase/get-user-or-redirect";
 import { createClient } from "@/lib/supabase/server";
 import type { AssessmentRow, ClassRow } from "@/lib/types";
 
 export default async function ClassesPage() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const user = await getUserOrRedirect(supabase);
 
   const { data: classes } = await supabase
     .from("classes")

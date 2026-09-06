@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
@@ -8,6 +7,7 @@ import {
   focusThisWeek,
   projectedSemesterAverage,
 } from "@/lib/grades-aggregate";
+import { getUserOrRedirect } from "@/lib/supabase/get-user-or-redirect";
 import { createClient } from "@/lib/supabase/server";
 import type { AssessmentRow, ClassRow } from "@/lib/types";
 
@@ -58,10 +58,7 @@ function TrendArrow({
 
 export default async function GradesPage() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const user = await getUserOrRedirect(supabase);
 
   const { data: classes } = await supabase
     .from("classes")

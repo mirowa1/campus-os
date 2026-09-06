@@ -3,14 +3,12 @@ import { AppNav } from "@/components/AppNav";
 import { ResumeHtmlPreviewClient } from "@/components/ResumeHtmlPreviewClient";
 import { assertValidResumeHtml, wrapResumeDocument } from "@/lib/resume-html";
 import { isResumeTemplateId } from "@/lib/resume-templates";
+import { getUserOrRedirect } from "@/lib/supabase/get-user-or-redirect";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ResumePreviewPage() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const user = await getUserOrRedirect(supabase);
 
   const { data: resume } = await supabase
     .from("resumes")

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { BillingBanner } from "@/components/BillingBanner";
 import { GoogleCalendarSettings } from "@/components/GoogleCalendarSettings";
+import { getUserOrRedirect } from "@/lib/supabase/get-user-or-redirect";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -12,10 +12,7 @@ export const metadata: Metadata = {
 
 export default async function SettingsPage() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const user = await getUserOrRedirect(supabase);
 
   const { data: connection } = await supabase
     .from("google_calendar_connections")

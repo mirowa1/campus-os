@@ -1,16 +1,14 @@
 import { redirect } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { ResumeGenerateClient } from "@/components/ResumeGenerateClient";
+import { getUserOrRedirect } from "@/lib/supabase/get-user-or-redirect";
 import { createClient } from "@/lib/supabase/server";
 import { isResumeTemplateId } from "@/lib/resume-templates";
 import type { ResumeTemplateId } from "@/lib/types";
 
 export default async function ResumeGeneratePage() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const user = await getUserOrRedirect(supabase);
 
   const { data: resume } = await supabase
     .from("resumes")

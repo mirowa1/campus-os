@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { AppNav } from "@/components/AppNav";
 import { ClassExportButton } from "@/components/ClassExportButton";
 import { DeleteClassButton } from "@/components/DeleteClassButton";
@@ -10,6 +10,7 @@ import { NotesPanel } from "@/components/NotesPanel";
 import { QuizFlashcardsPanel } from "@/components/QuizFlashcardsPanel";
 import { StudyGuidePanel } from "@/components/StudyGuidePanel";
 import { SyllabusDownloadButton } from "@/components/SyllabusDownloadButton";
+import { getUserOrRedirect } from "@/lib/supabase/get-user-or-redirect";
 import { createClient } from "@/lib/supabase/server";
 import type {
   AssessmentRow,
@@ -27,10 +28,7 @@ export default async function ClassDetailPage({
   params: { id: string };
 }) {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const user = await getUserOrRedirect(supabase);
 
   const { data: classRow } = await supabase
     .from("classes")

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getUserOrRedirect } from "@/lib/supabase/get-user-or-redirect";
 import { createClient } from "@/lib/supabase/server";
 import { TargetGradeForm } from "./TargetGradeForm";
 import type { AssessmentRow, ClassRow } from "@/lib/types";
@@ -13,10 +14,7 @@ export default async function OnboardingReviewPage({
   if (!classId) redirect("/onboarding/upload");
 
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const user = await getUserOrRedirect(supabase);
 
   const { data: classRow } = await supabase
     .from("classes")
