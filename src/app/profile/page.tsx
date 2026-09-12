@@ -38,6 +38,9 @@ export default async function ProfilePage() {
         expected_grad_term: null,
         student_id: null,
         avatar_path: null,
+        signup_utm_source: null,
+        signup_utm_medium: null,
+        signup_utm_campaign: null,
       };
 
   if (!profile) {

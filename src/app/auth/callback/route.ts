@@ -1,11 +1,26 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import {
+  UTM_COOKIE_NAME,
+  parseUtmCookieValue,
+  persistSignupUtm,
+} from "@/lib/utm";
 
 function safeNextPath(raw: string | null): string {
   if (!raw || !raw.startsWith("/") || raw.startsWith("//")) {
     return "/dashboard";
   }
   return raw;
+}
+
+function readCookie(request: Request, name: string): string | undefined {
+  const header = request.headers.get("cookie");
+  if (!header) return undefined;
+  for (const part of header.split(";")) {
+    const [k, ...rest] = part.trim().split("=");
+    if (k === name) return rest.join("=");
+  }
+  return undefined;
 }
 
 export async function GET(request: Request) {
@@ -34,6 +49,9 @@ export async function GET(request: Request) {
     }).catch((err) => {
       console.error("[welcome-email] oauth request failed:", err);
     });
+
+    const utm = parseUtmCookieValue(readCookie(request, UTM_COOKIE_NAME));
+    await persistSignupUtm(supabase, data.user.id, utm);
   }
 
   return NextResponse.redirect(`${origin}${next}`);

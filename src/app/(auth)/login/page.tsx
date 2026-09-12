@@ -35,6 +35,10 @@ function LoginForm() {
       return;
     }
 
+    void fetch("/api/auth/attribution", { method: "POST" }).catch((err) => {
+      console.error("[utm] attribution request failed:", err);
+    });
+
     router.push("/dashboard");
     router.refresh();
   }

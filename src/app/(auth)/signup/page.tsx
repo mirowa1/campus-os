@@ -45,6 +45,9 @@ export default function SignupPage() {
     });
 
     if (data.session) {
+      void fetch("/api/auth/attribution", { method: "POST" }).catch((err) => {
+        console.error("[utm] attribution request failed:", err);
+      });
       router.push("/onboarding/upload");
       router.refresh();
       return;

@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { applyFirstTouchUtmCookie } from "@/lib/utm";
 
 const GET_USER_TIMEOUT_MS = 4000;
 
@@ -27,6 +28,11 @@ function isPublicPath(path: string): boolean {
   return false;
 }
 
+function withUtm(request: NextRequest, response: NextResponse): NextResponse {
+  applyFirstTouchUtmCookie(request, response);
+  return response;
+}
+
 export async function updateSession(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -42,13 +48,13 @@ export async function updateSession(request: NextRequest) {
     if (needsAuth) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/login";
-      return NextResponse.redirect(redirectUrl);
+      return withUtm(request, NextResponse.redirect(redirectUrl));
     }
-    return NextResponse.next();
+    return withUtm(request, NextResponse.next());
   }
 
   if (isPublicPath(path)) {
-    return NextResponse.next();
+    return withUtm(request, NextResponse.next());
   }
 
   let response = NextResponse.next({
@@ -107,19 +113,19 @@ export async function updateSession(request: NextRequest) {
   if (!user && !path.startsWith("/api/")) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
-    return NextResponse.redirect(redirectUrl);
+    return withUtm(request, NextResponse.redirect(redirectUrl));
   }
 
   // API routes handle their own auth (return 401)
   if (!user && path.startsWith("/api/")) {
-    return response;
+    return withUtm(request, response);
   }
 
   if (user && isAuthRoute) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/dashboard";
-    return NextResponse.redirect(redirectUrl);
+    return withUtm(request, NextResponse.redirect(redirectUrl));
   }
 
-  return response;
+  return withUtm(request, response);
 }

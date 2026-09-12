@@ -12,6 +12,10 @@ export interface Profile {
   /** Private — owner-only via profiles RLS. Never put in shared/public storage. */
   student_id: string | null;
   avatar_path: string | null;
+  /** First-touch marketing attribution; set once at signup, never overwritten. */
+  signup_utm_source: string | null;
+  signup_utm_medium: string | null;
+  signup_utm_campaign: string | null;
 }
 
 export interface ClassRow {
