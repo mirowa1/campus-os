@@ -1,19 +1,21 @@
 /**
- * Comp-access invite emails — hardcoded recipient list.
+ * Comp-access invite emails.
  *
  * Preview: --preview (prints subject + body, no send).
  * Test send: --test (always sends to TEST_EMAIL below).
- * Bulk send: --confirm-send-all (typed "yes" confirmation required).
+ * Single: --send-to=<email> (must be in RECIPIENTS or PENDING_NO_ACCOUNT).
+ * Pending batch: --confirm-send-pending (the 3 no-account invites).
+ * Legacy bulk: --confirm-send-all (old RECIPIENTS list — use carefully).
  *
  *   npx tsx scripts/send-comp-invite.ts --preview
  *   npx tsx scripts/send-comp-invite.ts --test
- *   npx tsx scripts/send-comp-invite.ts --send-to=mroseman2@student.gsu.edu
- *   npx tsx scripts/send-comp-invite.ts --confirm-send-all
+ *   npx tsx scripts/send-comp-invite.ts --send-to=esika1@student.gsu.edu
+ *   npx tsx scripts/send-comp-invite.ts --confirm-send-pending
  *
  * Env (.env.local): RESEND_API_KEY
  *
- * NOTE: Only danorete@gmail.com has comp access applied today. Other recipients
- * have no account yet — do not bulk-send until copy/timing is approved.
+ * Copy does NOT claim access is already active — recipients must sign up,
+ * then reply for manual Pro grant (period_end = grant date + 30 days).
  */
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
@@ -28,12 +30,23 @@ const SUBJECT = "You're invited — 30 days of Coursework Pro (complimentary)";
 const REPLY_TO = "help@coremaxsystems.com";
 const SEND_DELAY_MS = 250;
 
+/** Legacy list (may include people who already got mail). */
 const RECIPIENTS = [
   "danorete@gmail.com",
   "Sammor2023@gmail.com",
   "Tmakinde2@student.gsu.edu",
   "mroseman2@student.gsu.edu",
   "risbyceonna07@gmail.com",
+] as const;
+
+/**
+ * No Coursework account yet — invite only; do not claim Pro is active.
+ * (columbia.edu corrected from typed cloumbia.edu)
+ */
+const PENDING_NO_ACCOUNT = [
+  "mif2128@columbia.edu",
+  "esika1@student.gsu.edu",
+  "sdunn27@student.gsu.edu",
 ] as const;
 
 const BODY_TEXT = `Hey,
@@ -50,7 +63,7 @@ A quick overview of what's included:
 
 Get started: https://www.coremaxsystems.com/signup
 
-Your complimentary access is already active on the email this was sent to. If you run into any issues, just reach out at help@coremaxsystems.com.
+Sign up with this same email. Once you're in, reply to this message (or email help@coremaxsystems.com) and I'll turn on your 30 days of complimentary Pro.
 
 Would love honest feedback — what's useful, what's confusing, what's missing.
 
@@ -74,7 +87,7 @@ function buildBodyHtml() {
   <li>Resume builder</li>
 </ul>
 <p>Get started: <a href="https://www.coremaxsystems.com/signup">https://www.coremaxsystems.com/signup</a></p>
-<p>Your complimentary access is already active on the email this was sent to. If you run into any issues, just reach out at <a href="mailto:help@coremaxsystems.com">help@coremaxsystems.com</a>.</p>
+<p>Sign up with this same email. Once you're in, reply to this message (or email <a href="mailto:help@coremaxsystems.com">help@coremaxsystems.com</a>) and I'll turn on your 30 days of complimentary Pro.</p>
 <p>Would love honest feedback — what's useful, what's confusing, what's missing.</p>
 <p>— Maxwell</p>
 <hr style="border:none;border-top:1px solid #e5e5e5;margin:24px 0;" />
@@ -104,14 +117,19 @@ function sleep(ms: number) {
 function parseArgs(argv: string[]) {
   const test = argv.includes("--test");
   const confirmSendAll = argv.includes("--confirm-send-all");
+  const confirmSendPending = argv.includes("--confirm-send-pending");
   const preview = argv.includes("--preview");
   const sendToArg = argv.find((a) => a.startsWith("--send-to="));
   const sendTo = sendToArg?.slice("--send-to=".length).trim().toLowerCase() || null;
-  return { test, confirmSendAll, preview, sendTo };
+  return { test, confirmSendAll, confirmSendPending, preview, sendTo };
 }
 
-function isRecipient(email: string) {
-  return RECIPIENTS.some((r) => r.toLowerCase() === email.toLowerCase());
+function isAllowedSendTo(email: string) {
+  const e = email.toLowerCase();
+  return (
+    RECIPIENTS.some((r) => r.toLowerCase() === e) ||
+    PENDING_NO_ACCOUNT.some((r) => r.toLowerCase() === e)
+  );
 }
 
 async function sendToRecipient(to: string) {
@@ -124,7 +142,7 @@ async function sendToRecipient(to: string) {
   });
 }
 
-function printRenderedPreview(to?: string) {
+function printRenderedPreview(to?: string, listLabel?: string, list?: readonly string[]) {
   console.log("=== RENDERED PREVIEW ===");
   if (to) console.log(`To: ${to}`);
   console.log(`Subject: ${SUBJECT}`);
@@ -132,9 +150,10 @@ function printRenderedPreview(to?: string) {
   console.log("\n--- plain text ---\n");
   console.log(BODY_TEXT);
   console.log("\n--- html (truncated header) ---\n");
-  console.log(buildBodyHtml().slice(0, 600) + "\n...(html continues)");
-  console.log("\nBulk recipients when --confirm-send-all:");
-  RECIPIENTS.forEach((e, i) => console.log(`  ${i + 1}. ${e}`));
+  console.log(buildBodyHtml().slice(0, 700) + "\n...(html continues)");
+  const show = list ?? PENDING_NO_ACCOUNT;
+  console.log(`\n${listLabel ?? "Pending no-account recipients"}:`);
+  show.forEach((e, i) => console.log(`  ${i + 1}. ${e}`));
 }
 
 function printUsage() {
@@ -146,11 +165,14 @@ function printUsage() {
     Send one test email to ${TEST_EMAIL} (standing default).
 
   npx tsx scripts/send-comp-invite.ts --send-to=<email>
-    Send one invite to a hardcoded comp recipient (must be in RECIPIENTS list).
+    Send one invite (must be in RECIPIENTS or PENDING_NO_ACCOUNT).
+
+  npx tsx scripts/send-comp-invite.ts --confirm-send-pending
+    Send to the ${PENDING_NO_ACCOUNT.length} no-account pending invites.
+    Requires typing "yes".
 
   npx tsx scripts/send-comp-invite.ts --confirm-send-all
-    Send to all ${RECIPIENTS.length} hardcoded comp-invite recipients.
-    Prints the full recipient list and requires typing "yes" before sending.`);
+    Send to legacy RECIPIENTS list (use carefully).`);
 }
 
 async function promptYes(message: string) {
@@ -196,20 +218,27 @@ async function sendBatch(recipients: string[], label: string) {
 
 async function main() {
   loadEnv();
-  const { test, confirmSendAll, preview, sendTo } = parseArgs(process.argv.slice(2));
+  const { test, confirmSendAll, confirmSendPending, preview, sendTo } =
+    parseArgs(process.argv.slice(2));
 
-  if (!test && !confirmSendAll && !preview && !sendTo) {
+  if (!test && !confirmSendAll && !confirmSendPending && !preview && !sendTo) {
     printUsage();
     console.log(
-      "\nNo action taken. Pass --preview, --test, --send-to, or --confirm-send-all."
+      "\nNo action taken. Pass --preview, --test, --send-to, --confirm-send-pending, or --confirm-send-all."
     );
     return;
   }
 
-  const flagCount = [test, confirmSendAll, preview, !!sendTo].filter(Boolean).length;
+  const flagCount = [
+    test,
+    confirmSendAll,
+    confirmSendPending,
+    preview,
+    !!sendTo,
+  ].filter(Boolean).length;
   if (flagCount > 1) {
     throw new Error(
-      "Use only one of --preview, --test, --send-to, or --confirm-send-all."
+      "Use only one of --preview, --test, --send-to, --confirm-send-pending, or --confirm-send-all."
     );
   }
 
@@ -225,9 +254,9 @@ async function main() {
   }
 
   if (sendTo) {
-    if (!isRecipient(sendTo)) {
+    if (!isAllowedSendTo(sendTo)) {
       throw new Error(
-        `--send-to must be one of the hardcoded RECIPIENTS. Got: ${sendTo}`
+        `--send-to must be in RECIPIENTS or PENDING_NO_ACCOUNT. Got: ${sendTo}`
       );
     }
     printRenderedPreview(sendTo);
@@ -235,16 +264,29 @@ async function main() {
     return;
   }
 
+  if (confirmSendPending) {
+    const recipients = [...PENDING_NO_ACCOUNT];
+    console.log("=== PENDING NO-ACCOUNT SEND PREVIEW ===");
+    console.log(`Recipient count: ${recipients.length}`);
+    recipients.forEach((e, i) => console.log(`  ${i + 1}. ${e}`));
+    console.log(
+      "\nCopy does not claim Pro is active — they must sign up, then reply for grant."
+    );
+    const confirmed = await promptYes(
+      `\nAbout to send to ${recipients.length} pending invites. Type "yes" to confirm: `
+    );
+    if (!confirmed) {
+      console.log("Aborted — confirmation not received.");
+      return;
+    }
+    await sendBatch(recipients, "PENDING NO-ACCOUNT SEND");
+    return;
+  }
+
   const recipients = [...RECIPIENTS];
-
-  console.log("=== BULK SEND PREVIEW ===");
+  console.log("=== BULK SEND PREVIEW (legacy RECIPIENTS) ===");
   console.log(`Recipient count: ${recipients.length}`);
-  console.log("\nRecipients:");
   recipients.forEach((e, i) => console.log(`  ${i + 1}. ${e}`));
-  console.log(
-    "\nWARNING: Only danorete@gmail.com has comp access applied. Other recipients have no account yet."
-  );
-
   const confirmed = await promptYes(
     `\nAbout to send to ${recipients.length} recipients. Type "yes" to confirm: `
   );
@@ -252,7 +294,6 @@ async function main() {
     console.log("Aborted — confirmation not received.");
     return;
   }
-
   await sendBatch(recipients, "BULK SEND");
 }
 
