@@ -41,6 +41,7 @@ export default async function ProfilePage() {
         signup_utm_source: null,
         signup_utm_medium: null,
         signup_utm_campaign: null,
+        signup_utm_content: null,
       };
 
   if (!profile) {

@@ -2,7 +2,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { applyFirstTouchUtmCookie } from "@/lib/utm";
 
-const GET_USER_TIMEOUT_MS = 4000;
+const GET_USER_TIMEOUT_MS = 8000;
 
 /** Routes that never need a Supabase session check in middleware. */
 function isPublicPath(path: string): boolean {

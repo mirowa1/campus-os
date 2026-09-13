@@ -5,12 +5,18 @@ import type { BillingPlan } from "@/lib/billing";
 
 type Props = {
   open: boolean;
-  feature: "syllabus" | "calendar_sync" | "classtoexcel" | null;
+  feature:
+    | "syllabus"
+    | "calendar_sync"
+    | "classtoexcel"
+    | "settings"
+    | "assistant"
+    | null;
   onClose: () => void;
 };
 
 const FEATURE_COPY: Record<
-  "syllabus" | "calendar_sync" | "classtoexcel",
+  "syllabus" | "calendar_sync" | "classtoexcel" | "settings" | "assistant",
   string
 > = {
   syllabus:
@@ -19,6 +25,10 @@ const FEATURE_COPY: Record<
     "Your first Google Calendar sync is free. Subscribe for unlimited syllabus uploads and calendar syncs.",
   classtoexcel:
     "You've used your 3 free ClassToExcel conversions. Subscribe to Coursework Pro for unlimited conversions and full semester planning.",
+  settings:
+    "Subscribe to Coursework Pro for unlimited syllabus uploads, calendar sync, and ClassToExcel conversions.",
+  assistant:
+    "You've used your 10 free Coursework assistant messages. Subscribe to Coursework Pro for unlimited AI help grounded in your classes, grades, and due dates.",
 };
 
 const PLAN_OPTIONS: { plan: BillingPlan; primary?: boolean }[] = [

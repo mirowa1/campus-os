@@ -9,6 +9,7 @@ export type SignupUtm = {
   source: string | null;
   medium: string | null;
   campaign: string | null;
+  content: string | null;
 };
 
 function sanitizeUtmValue(raw: string | null | undefined): string | null {
@@ -26,8 +27,9 @@ export function parseUtmSearchParams(
   const source = sanitizeUtmValue(searchParams.get("utm_source"));
   const medium = sanitizeUtmValue(searchParams.get("utm_medium"));
   const campaign = sanitizeUtmValue(searchParams.get("utm_campaign"));
-  if (!source && !medium && !campaign) return null;
-  return { source, medium, campaign };
+  const content = sanitizeUtmValue(searchParams.get("utm_content"));
+  if (!source && !medium && !campaign && !content) return null;
+  return { source, medium, campaign, content };
 }
 
 /** Raw JSON — Next/cookie libraries handle encoding; do not encodeURIComponent twice. */
@@ -36,6 +38,7 @@ export function serializeUtmCookie(utm: SignupUtm): string {
     source: utm.source,
     medium: utm.medium,
     campaign: utm.campaign,
+    content: utm.content,
   });
 }
 
@@ -60,8 +63,9 @@ export function parseUtmCookieValue(
     const source = sanitizeUtmValue(parsed.source ?? null);
     const medium = sanitizeUtmValue(parsed.medium ?? null);
     const campaign = sanitizeUtmValue(parsed.campaign ?? null);
-    if (!source && !medium && !campaign) return null;
-    return { source, medium, campaign };
+    const content = sanitizeUtmValue(parsed.content ?? null);
+    if (!source && !medium && !campaign && !content) return null;
+    return { source, medium, campaign, content };
   } catch {
     return null;
   }
@@ -102,7 +106,7 @@ export async function persistSignupUtm(
   userId: string,
   utm: SignupUtm | null
 ): Promise<{ wrote: boolean }> {
-  if (!utm || (!utm.source && !utm.medium && !utm.campaign)) {
+  if (!utm || (!utm.source && !utm.medium && !utm.campaign && !utm.content)) {
     return { wrote: false };
   }
   const { data, error } = await supabase
@@ -111,6 +115,7 @@ export async function persistSignupUtm(
       signup_utm_source: utm.source,
       signup_utm_medium: utm.medium,
       signup_utm_campaign: utm.campaign,
+      signup_utm_content: utm.content,
     })
     .eq("id", userId)
     .is("signup_utm_source", null)

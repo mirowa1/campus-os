@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { AssistantWidget } from "@/components/AssistantWidget";
 import { Logo } from "@/components/Logo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { createClient } from "@/lib/supabase/client";
 
 const NAV = [
@@ -10,6 +12,7 @@ const NAV = [
   { href: "/calendar", label: "Calendar" },
   { href: "/classes", label: "Classes" },
   { href: "/grades", label: "Grades" },
+  { href: "/assessments", label: "Assessments" },
   { href: "/classtoexcel", label: "ClassToExcel" },
   { href: "/resume", label: "Resume" },
   { href: "/settings", label: "Settings" },
@@ -51,6 +54,7 @@ export function AppNav({ email }: { email?: string | null }) {
           </nav>
         </div>
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           {email && (
             <Link
               href="/profile"
@@ -91,6 +95,7 @@ export function AppNav({ email }: { email?: string | null }) {
           );
         })}
       </nav>
+      <AssistantWidget />
     </header>
   );
 }

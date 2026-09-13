@@ -68,7 +68,8 @@ export function Logo({
             cy="48"
             rx="110"
             ry="38"
-            stroke="rgba(255,255,255,0.9)"
+            stroke="currentColor"
+            strokeOpacity="0.9"
             strokeWidth="2.75"
           />
           <text
@@ -76,7 +77,7 @@ export function Logo({
             y="49"
             textAnchor="middle"
             dominantBaseline="central"
-            fill="#ffffff"
+            fill="currentColor"
             style={{
               fontFamily: "var(--font-fredoka), system-ui, sans-serif",
               fontWeight: 600,
@@ -91,7 +92,7 @@ export function Logo({
       </div>
       {withByline && (
         <span
-          className="font-normal tracking-[0.06em] text-white/65"
+          className="font-normal tracking-[0.06em] text-[var(--muted)]"
           style={{
             fontSize: bylineSize,
             fontFamily: "var(--font-body), system-ui, sans-serif",
@@ -105,7 +106,10 @@ export function Logo({
 
   if (!href) {
     return (
-      <span aria-label="Coursework by CoreMax" className="inline-block">
+      <span
+        aria-label="Coursework by CoreMax"
+        className="inline-block text-[var(--ink)]"
+      >
         {inner}
       </span>
     );
@@ -115,7 +119,7 @@ export function Logo({
     <Link
       href={href}
       aria-label="Coursework by CoreMax"
-      className="inline-block shrink-0"
+      className="inline-block shrink-0 text-[var(--ink)]"
     >
       {inner}
     </Link>

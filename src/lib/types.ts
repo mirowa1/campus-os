@@ -16,6 +16,7 @@ export interface Profile {
   signup_utm_source: string | null;
   signup_utm_medium: string | null;
   signup_utm_campaign: string | null;
+  signup_utm_content: string | null;
 }
 
 export interface ClassRow {

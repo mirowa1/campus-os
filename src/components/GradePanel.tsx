@@ -1,35 +1,29 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   computeGradeProjection,
   LETTER_OPTIONS,
   letterToPercent,
 } from "@/lib/grades";
-import type { AssessmentRow, AssessmentType, ClassRow } from "@/lib/types";
+import type { AssessmentRow, ClassRow } from "@/lib/types";
 import { StatusBadge } from "./StatusBadge";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { AssessmentEditForm } from "@/components/AssessmentEditForm";
+import { DeleteAssessmentDialog } from "@/components/DeleteAssessmentDialog";
+import {
+  EMPTY_ASSESSMENT_FORM,
+  createAssessment,
+  deleteAssessment,
+  patchAssessment,
+  saveAssessmentScore,
+  type AssessmentFormFields,
+} from "@/lib/assessment-client";
 
 type Props = {
   classRow: ClassRow;
   assessments: AssessmentRow[];
-};
-
-const ASSESSMENT_TYPES: AssessmentType[] = [
-  "assignment",
-  "quiz",
-  "exam",
-  "other",
-];
-
-const EMPTY_FORM = {
-  title: "",
-  type: "assignment" as AssessmentType,
-  due_date: "",
-  weight_percent: "0",
-  score: "",
-  max_score: "100",
 };
 
 function sortAssessments(rows: AssessmentRow[]): AssessmentRow[] {
@@ -44,6 +38,9 @@ function sortAssessments(rows: AssessmentRow[]): AssessmentRow[] {
 export function GradePanel({ classRow, assessments: initial }: Props) {
   const router = useRouter();
   const [assessments, setAssessments] = useState(initial);
+  useEffect(() => {
+    setAssessments(initial);
+  }, [initial]);
   const [targetLetter, setTargetLetter] = useState(
     classRow.target_letter ?? "B+"
   );
@@ -55,17 +52,14 @@ export function GradePanel({ classRow, assessments: initial }: Props) {
   const [calendarWarning, setCalendarWarning] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [addBusy, setAddBusy] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState<AssessmentFormFields>(EMPTY_ASSESSMENT_FORM);
   const [deleteTarget, setDeleteTarget] = useState<AssessmentRow | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [editTarget, setEditTarget] = useState<AssessmentRow | null>(null);
   const [editBusy, setEditBusy] = useState(false);
-  const [editForm, setEditForm] = useState({
-    title: "",
-    type: "assignment" as AssessmentType,
-    due_date: "",
-    weight_percent: "0",
-  });
+  const [editForm, setEditForm] = useState<AssessmentFormFields>(
+    EMPTY_ASSESSMENT_FORM
+  );
 
   const targetPercent = letterToPercent(targetLetter);
 
@@ -97,50 +91,21 @@ export function GradePanel({ classRow, assessments: initial }: Props) {
     router.refresh();
   }
 
-  async function saveScore(id: string, raw: string) {
+  async function onSaveScore(id: string, raw: string) {
     setError(null);
-    const value = raw.trim() === "" ? null : Number(raw);
-    if (value != null && Number.isNaN(value)) {
-      setError("Score must be a number.");
-      return;
-    }
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setError("Not signed in");
-      return;
-    }
-
-    const before = assessments.find((a) => a.id === id);
-    const averageBefore = computeGradeProjection(
+    const result = await saveAssessmentScore({
+      classId: classRow.id,
+      assessmentId: id,
+      rawScore: raw,
       assessments,
-      hasTarget ? targetPercent : null
-    ).currentPercent;
-
-    const { error: histError } = await supabase.from("score_history").insert({
-      user_id: user.id,
-      class_id: classRow.id,
-      assessment_id: id,
-      old_score: before?.score ?? null,
-      new_score: value,
-      class_average_before: averageBefore,
+      targetPercent: hasTarget ? targetPercent : null,
     });
-    if (histError) {
-      console.warn("score_history:", histError.message);
-    }
-
-    const { error: updError } = await supabase
-      .from("assessments")
-      .update({ score: value })
-      .eq("id", id);
-    if (updError) {
-      setError(updError.message);
+    if (result.error) {
+      setError(result.error);
       return;
     }
     setAssessments((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, score: value } : a))
+      prev.map((a) => (a.id === id ? { ...a, score: result.score } : a))
     );
     router.refresh();
   }
@@ -148,53 +113,30 @@ export function GradePanel({ classRow, assessments: initial }: Props) {
   async function addAssessment() {
     setError(null);
     setCalendarWarning(null);
-    const title = form.title.trim();
-    if (!title) {
-      setError("Title is required.");
-      return;
-    }
-
     setAddBusy(true);
     try {
-      const res = await fetch(`/api/classes/${classRow.id}/assessments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title,
-          type: form.type,
-          due_date: form.due_date || null,
-          weight_percent: Number(form.weight_percent),
-          score: form.score.trim() === "" ? null : Number(form.score),
-          max_score: form.max_score.trim() === "" ? 100 : Number(form.max_score),
-        }),
-      });
-      const data = (await res.json()) as {
-        error?: string;
-        assessment?: AssessmentRow;
-        calendarSyncWarning?: string;
-      };
-      if (!res.ok) {
-        setError(data.error || "Failed to add assessment");
+      const result = await createAssessment(classRow.id, form);
+      if (result.error) {
+        setError(result.error);
         return;
       }
-      if (data.assessment) {
-        setAssessments((prev) => sortAssessments([...prev, data.assessment!]));
-      }
-      if (data.calendarSyncWarning) {
-        showCalendarWarning(
-          `Assessment saved, but Google Calendar sync failed: ${data.calendarSyncWarning}. Use Sync to Google Calendar to retry.`
+      if (result.assessment) {
+        setAssessments((prev) =>
+          sortAssessments([...prev, result.assessment!])
         );
       }
-      setForm(EMPTY_FORM);
+      if (result.calendarSyncWarning) {
+        showCalendarWarning(
+          `Assessment saved, but Google Calendar sync failed: ${result.calendarSyncWarning}. Use Sync to Google Calendar to retry.`
+        );
+      }
+      setForm(EMPTY_ASSESSMENT_FORM);
       setAddOpen(false);
       router.refresh();
-    } catch {
-      setError("Failed to add assessment");
     } finally {
       setAddBusy(false);
     }
   }
-
 
   function startEdit(assessment: AssessmentRow) {
     setError(null);
@@ -204,6 +146,8 @@ export function GradePanel({ classRow, assessments: initial }: Props) {
       type: assessment.type,
       due_date: assessment.due_date ?? "",
       weight_percent: String(assessment.weight_percent),
+      score: assessment.score != null ? String(assessment.score) : "",
+      max_score: String(assessment.max_score),
     });
   }
 
@@ -211,52 +155,29 @@ export function GradePanel({ classRow, assessments: initial }: Props) {
     if (!editTarget) return;
     setError(null);
     setCalendarWarning(null);
-    const title = editForm.title.trim();
-    if (!title) {
-      setError("Title is required.");
-      return;
-    }
-
     setEditBusy(true);
     try {
-      const res = await fetch(
-        `/api/classes/${classRow.id}/assessments/${editTarget.id}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title,
-            type: editForm.type,
-            due_date: editForm.due_date || null,
-            weight_percent: Number(editForm.weight_percent),
-          }),
-        }
-      );
-      const data = (await res.json()) as {
-        error?: string;
-        assessment?: AssessmentRow;
-        calendarSyncWarning?: string;
-      };
-      if (!res.ok) {
-        setError(data.error || "Failed to update assessment");
+      const result = await patchAssessment(classRow.id, editTarget.id, editForm);
+      if (result.error) {
+        setError(result.error);
         return;
       }
-      if (data.assessment) {
+      if (result.assessment) {
         setAssessments((prev) =>
           sortAssessments(
-            prev.map((a) => (a.id === editTarget.id ? data.assessment! : a))
+            prev.map((a) =>
+              a.id === editTarget.id ? result.assessment! : a
+            )
           )
         );
       }
-      if (data.calendarSyncWarning) {
+      if (result.calendarSyncWarning) {
         showCalendarWarning(
-          `Assessment saved, but Google Calendar sync failed: ${data.calendarSyncWarning}. Use Sync to Google Calendar to retry.`
+          `Assessment saved, but Google Calendar sync failed: ${result.calendarSyncWarning}. Use Sync to Google Calendar to retry.`
         );
       }
       setEditTarget(null);
       router.refresh();
-    } catch {
-      setError("Failed to update assessment");
     } finally {
       setEditBusy(false);
     }
@@ -268,29 +189,19 @@ export function GradePanel({ classRow, assessments: initial }: Props) {
     setError(null);
     setCalendarWarning(null);
     try {
-      const res = await fetch(
-        `/api/classes/${classRow.id}/assessments/${deleteTarget.id}`,
-        { method: "DELETE" }
-      );
-      const data = (await res.json()) as {
-        error?: string;
-        calendarSyncWarning?: string;
-      };
-      if (!res.ok) {
-        setError(data.error || "Failed to delete assessment");
-        setDeleteBusy(false);
+      const result = await deleteAssessment(classRow.id, deleteTarget.id);
+      if (result.error) {
+        setError(result.error);
         return;
       }
       setAssessments((prev) => prev.filter((a) => a.id !== deleteTarget.id));
-      if (data.calendarSyncWarning) {
+      if (result.calendarSyncWarning) {
         showCalendarWarning(
-          `Assessment deleted, but Google Calendar cleanup failed: ${data.calendarSyncWarning}. You may need to remove the event manually or re-sync.`
+          `Assessment deleted, but Google Calendar cleanup failed: ${result.calendarSyncWarning}. You may need to remove the event manually or re-sync.`
         );
       }
       setDeleteTarget(null);
       router.refresh();
-    } catch {
-      setError("Failed to delete assessment");
     } finally {
       setDeleteBusy(false);
     }
@@ -335,8 +246,8 @@ export function GradePanel({ classRow, assessments: initial }: Props) {
           <button
             type="button"
             className="btn btn-primary"
-            onClick={saveTarget}
             disabled={saving}
+            onClick={() => void saveTarget()}
           >
             {saving ? "Saving…" : "Save target"}
           </button>
@@ -348,7 +259,6 @@ export function GradePanel({ classRow, assessments: initial }: Props) {
           {error}
         </p>
       )}
-
       {calendarWarning && (
         <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
           {calendarWarning}
@@ -372,99 +282,12 @@ export function GradePanel({ classRow, assessments: initial }: Props) {
 
         {addOpen && (
           <div className="space-y-3 border-b border-[var(--line)] px-5 py-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <label className="label" htmlFor="assessment-title">
-                  Title
-                </label>
-                <input
-                  id="assessment-title"
-                  className="input w-full"
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  placeholder="Midterm exam"
-                />
-              </div>
-              <div>
-                <label className="label" htmlFor="assessment-type">
-                  Type
-                </label>
-                <select
-                  id="assessment-type"
-                  className="input w-full"
-                  value={form.type}
-                  onChange={(e) =>
-                    setForm({ ...form, type: e.target.value as AssessmentType })
-                  }
-                >
-                  {ASSESSMENT_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="label" htmlFor="assessment-due">
-                  Due date
-                </label>
-                <input
-                  id="assessment-due"
-                  className="input w-full"
-                  type="date"
-                  value={form.due_date}
-                  onChange={(e) =>
-                    setForm({ ...form, due_date: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="label" htmlFor="assessment-weight">
-                  Weight %
-                </label>
-                <input
-                  id="assessment-weight"
-                  className="input w-full"
-                  type="number"
-                  min={0}
-                  step="0.1"
-                  value={form.weight_percent}
-                  onChange={(e) =>
-                    setForm({ ...form, weight_percent: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="label" htmlFor="assessment-max">
-                  Max score
-                </label>
-                <input
-                  id="assessment-max"
-                  className="input w-full"
-                  type="number"
-                  min={1}
-                  step="0.1"
-                  value={form.max_score}
-                  onChange={(e) =>
-                    setForm({ ...form, max_score: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="label" htmlFor="assessment-score">
-                  Score (optional)
-                </label>
-                <input
-                  id="assessment-score"
-                  className="input w-full"
-                  type="number"
-                  min={0}
-                  step="0.1"
-                  value={form.score}
-                  onChange={(e) => setForm({ ...form, score: e.target.value })}
-                />
-              </div>
-            </div>
+            <AssessmentEditForm
+              idPrefix="assessment-add"
+              form={form}
+              onChange={setForm}
+              mode="create"
+            />
             <button
               type="button"
               className="btn btn-primary text-sm"
@@ -483,76 +306,14 @@ export function GradePanel({ classRow, assessments: initial }: Props) {
               className="flex flex-wrap items-center gap-3 px-5 py-3 text-sm"
             >
               {editTarget?.id === a.id ? (
-                <div className="grid w-full gap-3 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    <label className="label" htmlFor={`edit-title-${a.id}`}>
-                      Title
-                    </label>
-                    <input
-                      id={`edit-title-${a.id}`}
-                      className="input w-full"
-                      value={editForm.title}
-                      onChange={(e) =>
-                        setEditForm({ ...editForm, title: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="label" htmlFor={`edit-type-${a.id}`}>
-                      Type
-                    </label>
-                    <select
-                      id={`edit-type-${a.id}`}
-                      className="input w-full"
-                      value={editForm.type}
-                      onChange={(e) =>
-                        setEditForm({
-                          ...editForm,
-                          type: e.target.value as AssessmentType,
-                        })
-                      }
-                    >
-                      {ASSESSMENT_TYPES.map((t) => (
-                        <option key={t} value={t}>
-                          {t}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="label" htmlFor={`edit-due-${a.id}`}>
-                      Due date
-                    </label>
-                    <input
-                      id={`edit-due-${a.id}`}
-                      className="input w-full"
-                      type="date"
-                      value={editForm.due_date}
-                      onChange={(e) =>
-                        setEditForm({ ...editForm, due_date: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="label" htmlFor={`edit-weight-${a.id}`}>
-                      Weight %
-                    </label>
-                    <input
-                      id={`edit-weight-${a.id}`}
-                      className="input w-full"
-                      type="number"
-                      min={0}
-                      step="0.1"
-                      value={editForm.weight_percent}
-                      onChange={(e) =>
-                        setEditForm({
-                          ...editForm,
-                          weight_percent: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="flex flex-wrap gap-2 sm:col-span-2">
+                <div className="grid w-full gap-3">
+                  <AssessmentEditForm
+                    idPrefix={`edit-${a.id}`}
+                    form={editForm}
+                    onChange={setEditForm}
+                    mode="edit"
+                  />
+                  <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
                       className="btn btn-primary text-sm"
@@ -590,7 +351,7 @@ export function GradePanel({ classRow, assessments: initial }: Props) {
                       step="0.1"
                       placeholder="Score"
                       defaultValue={a.score ?? ""}
-                      onBlur={(e) => saveScore(a.id, e.target.value)}
+                      onBlur={(e) => void onSaveScore(a.id, e.target.value)}
                     />
                     <span className="text-xs text-[var(--muted)]">
                       / {a.max_score}
@@ -627,45 +388,12 @@ export function GradePanel({ classRow, assessments: initial }: Props) {
       </div>
 
       {deleteTarget && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="delete-assessment-title"
-        >
-          <div className="surface w-full max-w-md rounded-2xl p-6 shadow-xl">
-            <h2 id="delete-assessment-title" className="font-heading text-2xl">
-              Delete this assessment?
-            </h2>
-            <p className="mt-2 text-sm text-[var(--muted)]">
-              This permanently removes{" "}
-              <span className="text-[var(--ink)]">{deleteTarget.title}</span>.
-              This cannot be undone.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                className="btn btn-primary text-sm"
-                style={{
-                  background: "var(--danger)",
-                  borderColor: "var(--danger)",
-                }}
-                disabled={deleteBusy}
-                onClick={() => void confirmDelete()}
-              >
-                {deleteBusy ? "Deleting…" : "Delete assessment"}
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost text-sm"
-                disabled={deleteBusy}
-                onClick={() => setDeleteTarget(null)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <DeleteAssessmentDialog
+          title={deleteTarget.title}
+          busy={deleteBusy}
+          onConfirm={() => void confirmDelete()}
+          onCancel={() => setDeleteTarget(null)}
+        />
       )}
     </div>
   );

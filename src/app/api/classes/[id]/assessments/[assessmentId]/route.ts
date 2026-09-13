@@ -17,6 +17,7 @@ function revalidateAssessmentPaths(classId: string) {
   revalidatePath("/dashboard");
   revalidatePath("/classes");
   revalidatePath("/grades");
+  revalidatePath("/assessments");
   revalidatePath("/calendar");
   revalidatePath(`/classes/${classId}`);
 }
