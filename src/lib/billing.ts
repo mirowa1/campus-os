@@ -85,74 +85,7 @@ export class PaywallError extends Error {
 }
 
 const BILLING_PROFILE_COLUMNS =
-  "id, free_syllabus_used, free_calendar_sync_used, classtoexcel_conversions_used, subscription_status, subscription_plan, subscription_current_period_end, subscription_cancel_at_period_end, subscription_expires_at, stripe_customer_id, stripe_subscription_id";
-
-/** Read assistant_messages_used; falls back to local file if migration 023 not applied yet (non-production only). */
-async function readAssistantMessagesUsed(
-  supabase: SupabaseClient,
-  userId: string
-): Promise<number> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("assistant_messages_used")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (!error) {
-    return Number(
-      (data as { assistant_messages_used?: number } | null)
-        ?.assistant_messages_used ?? 0
-    );
-  }
-
-  const missingColumn = /assistant_messages_used/i.test(error.message || "");
-  if (!missingColumn || process.env.NODE_ENV === "production") {
-    throw error;
-  }
-
-  try {
-    const { readFileSync, existsSync } = await import("fs");
-    const { join } = await import("path");
-    const { tmpdir } = await import("os");
-    const path = join(tmpdir(), "campus-os-assistant-usage.json");
-    if (!existsSync(path)) return 0;
-    const all = JSON.parse(readFileSync(path, "utf8")) as Record<
-      string,
-      number
-    >;
-    return Number(all[userId] ?? 0);
-  } catch {
-    return 0;
-  }
-}
-
-async function writeAssistantMessagesUsed(
-  supabase: SupabaseClient,
-  userId: string,
-  next: number
-): Promise<void> {
-  const { error } = await supabase
-    .from("profiles")
-    .update({ assistant_messages_used: next })
-    .eq("id", userId);
-
-  if (!error) return;
-
-  const missingColumn = /assistant_messages_used/i.test(error.message || "");
-  if (!missingColumn || process.env.NODE_ENV === "production") {
-    throw error;
-  }
-
-  const { readFileSync, writeFileSync, existsSync } = await import("fs");
-  const { join } = await import("path");
-  const { tmpdir } = await import("os");
-  const path = join(tmpdir(), "campus-os-assistant-usage.json");
-  const all = existsSync(path)
-    ? (JSON.parse(readFileSync(path, "utf8")) as Record<string, number>)
-    : {};
-  all[userId] = next;
-  writeFileSync(path, JSON.stringify(all));
-}
+  "id, free_syllabus_used, free_calendar_sync_used, classtoexcel_conversions_used, assistant_messages_used, subscription_status, subscription_plan, subscription_current_period_end, subscription_cancel_at_period_end, subscription_expires_at, stripe_customer_id, stripe_subscription_id";
 
 async function ensureBillingRow(
   supabase: SupabaseClient,
@@ -168,11 +101,11 @@ async function ensureBillingRow(
   if (error) throw error;
 
   if (data) {
-    const assistant_messages_used = await readAssistantMessagesUsed(
-      supabase,
-      userId
-    );
-    return { ...(data as Omit<BillingProfile, "assistant_messages_used">), assistant_messages_used };
+    const row = data as BillingProfile;
+    return {
+      ...row,
+      assistant_messages_used: Number(row.assistant_messages_used ?? 0),
+    };
   }
 
   const { data: created, error: upsertError } = await supabase
@@ -190,13 +123,10 @@ async function ensureBillingRow(
   if (upsertError || !created) {
     throw upsertError || new Error("Failed to create billing profile");
   }
-  const assistant_messages_used = await readAssistantMessagesUsed(
-    supabase,
-    userId
-  );
+  const row = created as BillingProfile;
   return {
-    ...(created as Omit<BillingProfile, "assistant_messages_used">),
-    assistant_messages_used,
+    ...row,
+    assistant_messages_used: Number(row.assistant_messages_used ?? 0),
   };
 }
 
@@ -344,9 +274,11 @@ export async function incrementAssistantMessagesUsed(
   if ((profile.assistant_messages_used ?? 0) >= FREE_ASSISTANT_MESSAGE_LIMIT) {
     return;
   }
-  await writeAssistantMessagesUsed(
-    supabase,
-    profile.id,
-    (profile.assistant_messages_used ?? 0) + 1
-  );
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      assistant_messages_used: (profile.assistant_messages_used ?? 0) + 1,
+    })
+    .eq("id", profile.id);
+  if (error) throw error;
 }
