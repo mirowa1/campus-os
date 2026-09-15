@@ -128,7 +128,7 @@ function MoreMenu({ pathname }: { pathname: string }) {
     if (!open) return;
     const items = rootRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
     if (!items?.length) return;
-    const list = [...items];
+    const list = Array.from(items);
     const idx = list.indexOf(document.activeElement as HTMLElement);
     if (e.key === "Tab") {
       e.preventDefault();
