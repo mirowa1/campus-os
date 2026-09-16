@@ -143,7 +143,6 @@ function SignupForm() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@university.edu"
             />
             {email && !isEdu && (
               <p className="mt-1.5 text-xs text-[var(--warn)]">
