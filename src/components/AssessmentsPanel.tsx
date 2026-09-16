@@ -39,9 +39,18 @@ const FILTER_KEYS: FilterKey[] = [
 type Props = {
   items: AssessmentsPanelItem[];
   classes: Pick<ClassRow, "id" | "name" | "code">[];
+  /** Hide add/edit/delete and skip API mutations (public demo). */
+  readOnly?: boolean;
+  /** Fired when a status filter chip is toggled (demo CTA trigger). */
+  onFilterInteraction?: () => void;
 };
 
-export function AssessmentsPanel({ items: initial, classes }: Props) {
+export function AssessmentsPanel({
+  items: initial,
+  classes,
+  readOnly = false,
+  onFilterInteraction,
+}: Props) {
   const router = useRouter();
   const [items, setItems] = useState(initial);
   const skipPropSyncUntil = useRef(0);
@@ -121,6 +130,7 @@ export function AssessmentsPanel({ items: initial, classes }: Props) {
   function toggleFilter(key: FilterKey) {
     setFilterHint(null);
     setFilters((prev) => ({ ...prev, [key]: !prev[key] }));
+    onFilterInteraction?.();
   }
 
   function classLabelFor(classId: string) {
@@ -327,17 +337,19 @@ export function AssessmentsPanel({ items: initial, classes }: Props) {
             );
           })}
         </div>
-        <button
-          type="button"
-          className="btn btn-ghost text-sm"
-          onClick={() => {
-            setError(null);
-            setAddOpen((v) => !v);
-          }}
-          disabled={classes.length === 0}
-        >
-          {addOpen ? "Cancel" : "+ Add assessment"}
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            className="btn btn-ghost text-sm"
+            onClick={() => {
+              setError(null);
+              setAddOpen((v) => !v);
+            }}
+            disabled={classes.length === 0}
+          >
+            {addOpen ? "Cancel" : "+ Add assessment"}
+          </button>
+        )}
       </div>
 
       {filterHint && (
@@ -354,7 +366,7 @@ export function AssessmentsPanel({ items: initial, classes }: Props) {
         </p>
       )}
 
-      {addOpen && (
+      {!readOnly && addOpen && (
         <div className="surface space-y-3 rounded-2xl p-5">
           <div>
             <label className="label" htmlFor="assessments-add-class">
@@ -400,59 +412,77 @@ export function AssessmentsPanel({ items: initial, classes }: Props) {
             status === "undated"
               ? undefined
               : ASSESSMENT_STATUS_COLORS[status];
+          const cardClass =
+            "w-full rounded-xl border border-black/10 px-3.5 py-3 text-left transition";
+          const cardStyle = {
+            background: bg ?? "var(--bg-soft)",
+            color: bg ? "#111" : "var(--ink)",
+          } as const;
+          const body = (
+            <>
+              <p className="text-[15px] font-bold leading-snug">
+                {row.assessment.title}
+              </p>
+              <p className="mt-1 text-xs opacity-80">{row.classLabel}</p>
+              <dl className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-2 text-[13px]">
+                <div>
+                  <dt className="text-[10px] uppercase tracking-wide opacity-60">
+                    Type
+                  </dt>
+                  <dd className="font-semibold capitalize">
+                    {row.assessment.type}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[10px] uppercase tracking-wide opacity-60">
+                    Due
+                  </dt>
+                  <dd className="font-semibold">
+                    {row.assessment.due_date ?? "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[10px] uppercase tracking-wide opacity-60">
+                    Weight
+                  </dt>
+                  <dd className="font-semibold">
+                    {row.assessment.weight_percent}%
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[10px] uppercase tracking-wide opacity-60">
+                    Score
+                  </dt>
+                  <dd className="font-semibold">
+                    {row.assessment.score != null
+                      ? `${row.assessment.score}/${row.assessment.max_score}`
+                      : "—"}
+                  </dd>
+                </div>
+              </dl>
+            </>
+          );
           return (
             <li key={row.assessment.id}>
-              <button
-                type="button"
-                id={`assessment-card-${row.assessment.id}`}
-                onClick={() => startEdit(row)}
-                className="w-full rounded-xl border border-black/10 px-3.5 py-3 text-left transition hover:brightness-95"
-                style={{
-                  background: bg ?? "var(--bg-soft)",
-                  color: bg ? "#111" : "var(--ink)",
-                }}
-              >
-                <p className="text-[15px] font-bold leading-snug">
-                  {row.assessment.title}
-                </p>
-                <p className="mt-1 text-xs opacity-80">{row.classLabel}</p>
-                <dl className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-2 text-[13px]">
-                  <div>
-                    <dt className="text-[10px] uppercase tracking-wide opacity-60">
-                      Type
-                    </dt>
-                    <dd className="font-semibold capitalize">
-                      {row.assessment.type}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-[10px] uppercase tracking-wide opacity-60">
-                      Due
-                    </dt>
-                    <dd className="font-semibold">
-                      {row.assessment.due_date ?? "—"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-[10px] uppercase tracking-wide opacity-60">
-                      Weight
-                    </dt>
-                    <dd className="font-semibold">
-                      {row.assessment.weight_percent}%
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-[10px] uppercase tracking-wide opacity-60">
-                      Score
-                    </dt>
-                    <dd className="font-semibold">
-                      {row.assessment.score != null
-                        ? `${row.assessment.score}/${row.assessment.max_score}`
-                        : "—"}
-                    </dd>
-                  </div>
-                </dl>
-              </button>
+              {readOnly ? (
+                <div
+                  id={`assessment-card-${row.assessment.id}`}
+                  className={cardClass}
+                  style={cardStyle}
+                >
+                  {body}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  id={`assessment-card-${row.assessment.id}`}
+                  onClick={() => startEdit(row)}
+                  className={`${cardClass} hover:brightness-95`}
+                  style={cardStyle}
+                >
+                  {body}
+                </button>
+              )}
             </li>
           );
         })}
@@ -463,7 +493,7 @@ export function AssessmentsPanel({ items: initial, classes }: Props) {
         )}
       </ul>
 
-      {editItem && (
+      {!readOnly && editItem && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 sm:items-center sm:px-4"
           role="dialog"
@@ -539,7 +569,7 @@ export function AssessmentsPanel({ items: initial, classes }: Props) {
         </div>
       )}
 
-      {deleteItem && (
+      {!readOnly && deleteItem && (
         <DeleteAssessmentDialog
           title={deleteItem.assessment.title}
           busy={deleteBusy}

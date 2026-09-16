@@ -20,6 +20,7 @@ function isPublicPath(path: string): boolean {
     path.startsWith("/forgot-password") ||
     path.startsWith("/reset-password") ||
     path.startsWith("/auth/callback") ||
+    path.startsWith("/demo") ||
     path.startsWith("/privacy") ||
     path.startsWith("/terms")
   ) {
