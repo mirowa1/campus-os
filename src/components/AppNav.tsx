@@ -78,6 +78,7 @@ const PRIMARY: NavItem[] = [
 const MORE = [
   { href: "/calendar", label: "Calendar" },
   { href: "/classtoexcel", label: "ClassToExcel" },
+  { href: "/assignment-guide", label: "Assignment Guide" },
   { href: "/resume", label: "Resume" },
   { href: "/settings", label: "Settings" },
 ] as const;
